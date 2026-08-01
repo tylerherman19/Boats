@@ -166,16 +166,6 @@
   </header>
 
   <div class="card token-card">
-    <details id="tokenDetails">
-      <summary>GitHub access token (one-time setup)</summary>
-      <label class="field-label" for="tokenInput">Fine-grained PAT, Contents: Read &amp; Write, scoped to this repo only</label>
-      <input id="tokenInput" type="password" placeholder="github_pat_...">
-      <button class="btn-ghost" style="margin-top:10px;" onclick="saveToken()">Save token</button>
-      <div id="tokenStatus" class="footnote"></div>
-    </details>
-  </div>
-
-  <div class="card token-card">
     <details id="phoneDetails">
       <summary>Text goes to (T-Mobile)</summary>
       <label class="field-label" for="phoneInput">10-digit phone number</label>
@@ -218,12 +208,7 @@
 </div>
 
 <script>
-const OWNER = "tylerherman19";
-const REPO = "Boats";
-const FILE = "watches.json";
-const SETTINGS_FILE = "settings.json";
-const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`;
-const SETTINGS_API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${SETTINGS_FILE}`;
+const SITE_SECRET = "gfhlZT8j3Rr94D56xxmprLjqdmw_Ygp3";
 
 const LAKES = [
   "Big Sandy", "Champlin", "Cross Lake", "Forest Lake", "Gull Lake",
@@ -231,19 +216,6 @@ const LAKES = [
   "Minnetonka - Browns Bay", "Minnetonka - Smiths Bay", "Prior Lake",
   "St. Croix River", "St. Paul - Watergate", "Vermilion", "Waconia", "White Bear Lake"
 ];
-
-function token() { return localStorage.getItem("boatwatch_token") || ""; }
-
-function saveToken() {
-  const v = document.getElementById("tokenInput").value.trim();
-  if (!v) return;
-  localStorage.setItem("boatwatch_token", v);
-  document.getElementById("tokenInput").value = "";
-  document.getElementById("tokenStatus").textContent = "Token saved in this browser.";
-  document.getElementById("tokenDetails").open = false;
-  loadWatches();
-  loadPhone();
-}
 
 function initLakes() {
   const grid = document.getElementById("lakeGrid");
@@ -278,70 +250,35 @@ function setStatus(msg, isErr) {
   el.className = isErr ? "err" : "ok";
 }
 
-async function ghGet() {
-  const res = await fetch(API, {
-    headers: { Authorization: `Bearer ${token()}`, Accept: "application/vnd.github+json" }
-  });
-  if (!res.ok) throw new Error(`GitHub read failed: ${res.status}`);
-  const data = await res.json();
-  const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-  return { content, sha: data.sha };
+function setButtonsDisabled(disabled) {
+  document.querySelectorAll("button").forEach(b => b.disabled = disabled);
 }
 
-async function ghPut(newContent, sha, message) {
-  const body = {
-    message,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(newContent, null, 2) + "\n"))),
-    sha,
-    branch: "main"
-  };
-  const res = await fetch(API, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token()}`,
-      Accept: "application/vnd.github+json",
-      "Content-Type": "application/json"
-    },
+async function apiGet(path) {
+  const res = await fetch(path, { headers: { "x-site-secret": SITE_SECRET } });
+  if (!res.ok) throw new Error(`Load failed: ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "x-site-secret": SITE_SECRET, "Content-Type": "application/json" },
     body: JSON.stringify(body)
   });
   if (!res.ok) {
     const text = await res.text();
-    const err = new Error(`GitHub write failed: ${res.status} ${text}`);
-    err.status = res.status;
-    throw err;
+    throw new Error(`Save failed: ${res.status} ${text}`);
   }
-}
-
-async function mutateWatches(mutateFn, message) {
-  const { content, sha } = await ghGet();
-  const newContent = mutateFn(content);
-  try {
-    await ghPut(newContent, sha, message);
-  } catch (e) {
-    if (e.status === 409) {
-      const retry = await ghGet();
-      const retryContent = mutateFn(retry.content);
-      await ghPut(retryContent, retry.sha, message);
-    } else {
-      throw e;
-    }
-  }
-}
-
-function setButtonsDisabled(disabled) {
-  document.querySelectorAll("button").forEach(b => b.disabled = disabled);
+  return res.json();
 }
 
 let currentWatches = [];
 
 async function loadWatches() {
   const listEl = document.getElementById("watchList");
-  if (!token()) {
-    listEl.innerHTML = '<div class="empty">Add your GitHub token above to load/manage watches.</div>';
-    return;
-  }
   try {
-    const { content } = await ghGet();
+    const { content } = await apiGet("/api/watches");
     currentWatches = content;
     if (!content.length) {
       listEl.innerHTML = '<div class="empty">No active watches.</div>';
@@ -366,7 +303,6 @@ async function loadWatches() {
 }
 
 async function addWatch() {
-  if (!token()) { setStatus("Add your GitHub token first.", true); return; }
   const lakes = getSelectedLakes();
   const date = document.getElementById("dateInput").value;
   const boat_type = document.getElementById("boatType").value || null;
@@ -376,10 +312,7 @@ async function addWatch() {
   setStatus("Saving...", false);
   setButtonsDisabled(true);
   try {
-    await mutateWatches(
-      content => { content.push({ lakes, date, boat_type }); return content; },
-      `Add watch: ${lakes.join(", ")} ${date}`
-    );
+    await apiPost("/api/watches", { action: "add", watch: { lakes, date, boat_type } });
     setStatus("Watch added. Next check runs within 5 minutes.", false);
     document.getElementById("dateInput").value = "";
     document.getElementById("boatType").value = "";
@@ -393,20 +326,12 @@ async function addWatch() {
 }
 
 async function removeWatch(index) {
-  if (!token()) { setStatus("Add your GitHub token first.", true); return; }
   const target = currentWatches[index];
   if (!target) return;
-  const targetLakes = JSON.stringify(target.lakes || (target.lake ? [target.lake] : []));
   setStatus("Removing...", false);
   setButtonsDisabled(true);
   try {
-    await mutateWatches(
-      content => content.filter(w => {
-        const wLakes = JSON.stringify(w.lakes || (w.lake ? [w.lake] : []));
-        return !(wLakes === targetLakes && w.date === target.date && w.boat_type === target.boat_type);
-      }),
-      `Remove watch: ${target.date}`
-    );
+    await apiPost("/api/watches", { action: "remove", watch: target });
     setStatus("Watch removed.", false);
     await loadWatches();
   } catch (e) {
@@ -417,16 +342,9 @@ async function removeWatch(index) {
 }
 
 async function loadPhone() {
-  if (!token()) return;
   try {
-    const res = await fetch(SETTINGS_API, {
-      headers: { Authorization: `Bearer ${token()}`, Accept: "application/vnd.github+json" }
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    const settings = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-    const smsTo = settings.sms_to || "";
-    const number = smsTo.split("@")[0];
+    const settings = await apiGet("/api/settings");
+    const number = (settings.sms_to || "").split("@")[0];
     if (number) {
       document.getElementById("phoneInput").placeholder = number;
       document.getElementById("phoneStatus").textContent = `Currently: ${number}`;
@@ -437,7 +355,6 @@ async function loadPhone() {
 }
 
 async function savePhone() {
-  if (!token()) { document.getElementById("phoneStatus").textContent = "Add your GitHub token first."; return; }
   const digits = document.getElementById("phoneInput").value.replace(/\D/g, "");
   if (digits.length !== 10) {
     document.getElementById("phoneStatus").textContent = "Enter a 10-digit number.";
@@ -446,28 +363,7 @@ async function savePhone() {
   setButtonsDisabled(true);
   document.getElementById("phoneStatus").textContent = "Saving...";
   try {
-    const res = await fetch(SETTINGS_API, {
-      headers: { Authorization: `Bearer ${token()}`, Accept: "application/vnd.github+json" }
-    });
-    const data = res.ok ? await res.json() : null;
-    const sha = data ? data.sha : undefined;
-    const newSettings = { sms_to: `${digits}@tmomail.net` };
-    const body = {
-      message: `Update SMS recipient`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(newSettings, null, 2) + "\n"))),
-      branch: "main"
-    };
-    if (sha) body.sha = sha;
-    const putRes = await fetch(SETTINGS_API, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token()}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-    if (!putRes.ok) throw new Error(`Save failed: ${putRes.status}`);
+    await apiPost("/api/settings", { sms_to: `${digits}@tmomail.net` });
     document.getElementById("phoneStatus").textContent = `Saved. Texts now go to ${digits}.`;
     document.getElementById("phoneInput").value = "";
     document.getElementById("phoneInput").placeholder = digits;
@@ -479,8 +375,8 @@ async function savePhone() {
 }
 
 initLakes();
-if (token()) { loadWatches(); loadPhone(); }
-else document.getElementById("tokenDetails").open = true;
+loadWatches();
+loadPhone();
 </script>
 </body>
 </html>
