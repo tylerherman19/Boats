@@ -3,7 +3,12 @@ name: Boat Watch
 on:
   schedule:
     - cron: "*/5 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      new_watch:
+        description: "JSON of a newly added watch (optional, triggers a confirmation text)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -22,6 +27,7 @@ jobs:
         env:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          NEW_WATCH: ${{ github.event.inputs.new_watch }}
         run: python check.py
 
       - name: Commit updated state
