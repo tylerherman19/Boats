@@ -44,11 +44,13 @@ async function mutate(mutateFn, message) {
   const next = mutateFn(content);
   try {
     await ghPut(WATCHES_API, next, sha, message);
+    return next;
   } catch (e) {
     if (e.status === 409) {
       const retry = await ghGet(WATCHES_API);
       const retryNext = mutateFn(retry.content);
       await ghPut(WATCHES_API, retryNext, retry.sha, message);
+      return retryNext;
     } else {
       throw e;
     }
@@ -86,7 +88,7 @@ module.exports = async (req, res) => {
       const { action, watch } = req.body || {};
 
       if (action === "add") {
-        await mutate(
+        const content = await mutate(
           (c) => { c.push(watch); return c; },
           `Add watch: ${lakesOf(watch).join(", ")} ${watch.date}`
         );
@@ -95,8 +97,11 @@ module.exports = async (req, res) => {
         } catch (e) {
           console.error("trigger check failed:", e.message);
         }
-      } else if (action === "remove") {
-        await mutate(
+        return res.status(200).json({ content });
+      }
+
+      if (action === "remove") {
+        const content = await mutate(
           (c) => c.filter((w) => {
             const wLakes = JSON.stringify(lakesOf(w));
             const tLakes = JSON.stringify(lakesOf(watch));
@@ -104,12 +109,10 @@ module.exports = async (req, res) => {
           }),
           `Remove watch: ${watch.date}`
         );
-      } else {
-        return res.status(400).json({ error: "invalid action" });
+        return res.status(200).json({ content });
       }
 
-      const { content } = await ghGet(WATCHES_API);
-      return res.status(200).json({ content });
+      return res.status(400).json({ error: "invalid action" });
     }
 
     return res.status(405).json({ error: "method not allowed" });
