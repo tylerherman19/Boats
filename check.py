@@ -1,13 +1,13 @@
 import json
 import os
+import smtplib
 import urllib.parse
 import urllib.request
+from email.mime.text import MIMEText
 
-import yaml
-
-NTFY_TOPIC = "tylerherman19-boatwatch-8f3k2"
 API_BASE = "https://yourboatclub.com/boatclubappsreservation"
 BOOKING_URL = "https://yourboatclub.com/boatclubappsreservation/reservation/index.html"
+SMS_TO = "7634432772@tmomail.net"
 
 
 def fetch_json(url):
@@ -28,20 +28,24 @@ def get_available(location_id, date_str):
     return fetch_json(url)
 
 
-def notify(title, message):
-    req = urllib.request.Request(
-        f"https://ntfy.sh/{NTFY_TOPIC}",
-        data=message.encode("utf-8"),
-        headers={"Title": title, "Priority": "urgent", "Tags": "boat,rotating_light"},
-        method="POST",
-    )
-    urllib.request.urlopen(req, timeout=10)
+def notify(subject, body):
+    gmail_address = os.environ["GMAIL_ADDRESS"]
+    gmail_password = os.environ["GMAIL_APP_PASSWORD"]
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = gmail_address
+    msg["To"] = SMS_TO
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(gmail_address, gmail_password)
+        server.sendmail(gmail_address, [SMS_TO], msg.as_string())
 
 
 def main():
-    with open("watches.yaml") as f:
-        config = yaml.safe_load(f) or {}
-    watches = config.get("watches") or []
+    with open("watches.json") as f:
+        watches = json.load(f) or []
     if not watches:
         print("No active watches. Exiting.")
         return
