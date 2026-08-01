@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boat Watch</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --border: #e2e4e9;
+    --accent: #0b6efd;
+    --accent-text: #ffffff;
+    --danger: #d93025;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --card: #1e2128;
+      --text: #f0f1f3;
+      --muted: #9aa0aa;
+      --border: #2c303a;
+      --accent: #4b9bff;
+      --accent-text: #0b1220;
+      --danger: #ff6b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.sub { color: var(--muted); margin-top: 0; font-size: 0.9rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 10px 0 4px; }
+  select, input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-text); width: 100%; margin-top: 14px; }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 10px; font-size: 0.85rem; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 0.85rem; }
+  .watch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .watch-row:last-child { border-bottom: none; }
+  .watch-meta { font-size: 0.9rem; }
+  .watch-meta .lake { font-weight: 600; }
+  .watch-meta .detail { color: var(--muted); font-size: 0.8rem; }
+  #status { font-size: 0.85rem; margin-top: 10px; min-height: 1.2em; }
+  #status.ok { color: #1a9e5c; }
+  #status.err { color: var(--danger); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
+  .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Boat Watch</h1>
+  <p class="sub">Pick a lake + date. Get a text the moment a boat opens up.</p>
+
+  <div class="card">
+    <details id="tokenDetails">
+      <summary>GitHub access token (required once)</summary>
+      <label for="tokenInput">Fine-grained PAT, Contents: Read &amp; Write, scoped to this repo only</label>
+      <input id="tokenInput" type="password" placeholder="github_pat_...">
+      <button class="btn-ghost" style="margin-top:8px;" onclick="saveToken()">Save token</button>
+      <div id="tokenStatus" style="font-size:0.8rem; margin-top:6px; color: var(--muted);"></div>
+    </details>
+  </div>
+
+  <div class="card">
+    <label for="lakeSelect">Lake</label>
+    <select id="lakeSelect"></select>
+
+    <label for="dateInput">Date</label>
+    <input id="dateInput" type="date">
+
+    <label for="boatType">Boat type (optional, e.g. Pontoon)</label>
+    <input id="boatType" type="text" placeholder="Any">
+
+    <button class="btn-primary" onclick="addWatch()">Add watch</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>Active watches</strong>
+      <button class="btn-ghost" onclick="loadWatches()">Refresh</button>
+    </div>
+    <div id="watchList"></div>
+  </div>
+</div>
+
+<script>
+const OWNER = "tylerherman19";
+const REPO = "Boats";
+const FILE = "watches.json";
+const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`;
+
+const LAKES = [
+  "Big Sandy", "Champlin", "Cross Lake", "Forest Lake", "Gull Lake",
+  "Leech Lake - Bluewater Lodge", "Leech Lake - Chase", "Mille Lacs - Garrison",
+  "Minnetonka - Browns Bay", "Minnetonka - Smiths Bay", "Prior Lake",
+  "St. Croix River", "St. Paul - Watergate", "Vermilion", "Waconia", "White Bear Lake"
+];
+
+function token() { return localStorage.getItem("boatwatch_token") || ""; }
+
+function saveToken() {
+  const v = document.getElementById("tokenInput").value.trim();
+  if (!v) return;
+  localStorage.setItem("boatwatch_token", v);
+  document.getElementById("tokenInput").value = "";
+  document.getElementById("tokenStatus").textContent = "Token saved in this browser.";
+  document.getElementById("tokenDetails").open = false;
+  loadWatches();
+}
+
+function initLakes() {
+  const sel = document.getElementById("lakeSelect");
+  sel.innerHTML = LAKES.map(l => `<option value="${l}">${l}</option>`).join("");
+}
+
+function setStatus(msg, isErr) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = isErr ? "err" : "ok";
+}
+
+async function ghGet() {
+  const res = await fetch(API, {
+    headers: { Authorization: `Bearer ${token()}`, Accept: "application/vnd.github+json" }
+  });
+  if (!res.ok) throw new Error(`GitHub read failed: ${res.status}`);
+  const data = await res.json();
+  const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+  return { content, sha: data.sha };
+}
+
+async function ghPut(newContent, sha, message) {
+  const body = {
+    message,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(newContent, null, 2) + "\n"))),
+    sha,
+    branch: "main"
+  };
+  const res = await fetch(API, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token()}`,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`GitHub write failed: ${res.status} ${text}`);
+  }
+}
+
+async function loadWatches() {
+  const listEl = document.getElementById("watchList");
+  if (!token()) {
+    listEl.innerHTML = '<div class="empty">Add your GitHub token above to load/manage watches.</div>';
+    return;
+  }
+  try {
+    const { content } = await ghGet();
+    if (!content.length) {
+      listEl.innerHTML = '<div class="empty">No active watches.</div>';
+      return;
+    }
+    listEl.innerHTML = content.map((w, i) => `
+      <div class="watch-row">
+        <div class="watch-meta">
+          <div class="lake">${w.lake}</div>
+          <div class="detail">${w.date}${w.boat_type ? " &middot; " + w.boat_type : ""}</div>
+        </div>
+        <button class="btn-danger" onclick="removeWatch(${i})">Remove</button>
+      </div>
+    `).join("");
+  } catch (e) {
+    listEl.innerHTML = `<div class="empty">Error loading watches: ${e.message}</div>`;
+  }
+}
+
+async function addWatch() {
+  if (!token()) { setStatus("Add your GitHub token first.", true); return; }
+  const lake = document.getElementById("lakeSelect").value;
+  const date = document.getElementById("dateInput").value;
+  const boat_type = document.getElementById("boatType").value.trim() || null;
+  if (!date) { setStatus("Pick a date.", true); return; }
+
+  setStatus("Saving...", false);
+  try {
+    const { content, sha } = await ghGet();
+    content.push({ lake, date, boat_type });
+    await ghPut(content, sha, `Add watch: ${lake} ${date}`);
+    setStatus("Watch added. Next check runs within 5 minutes.", false);
+    document.getElementById("dateInput").value = "";
+    document.getElementById("boatType").value = "";
+    loadWatches();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+async function removeWatch(index) {
+  if (!token()) { setStatus("Add your GitHub token first.", true); return; }
+  setStatus("Removing...", false);
+  try {
+    const { content, sha } = await ghGet();
+    const removed = content.splice(index, 1)[0];
+    await ghPut(content, sha, `Remove watch: ${removed.lake} ${removed.date}`);
+    setStatus("Watch removed.", false);
+    loadWatches();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+initLakes();
+if (token()) loadWatches();
+else document.getElementById("tokenDetails").open = true;
+</script>
+</body>
+</html>
