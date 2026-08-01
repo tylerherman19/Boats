@@ -1,0 +1,11 @@
+# Add or remove entries below to control what gets watched.
+# Commit this file (or edit it via GitHub app) = your trigger.
+# boat_type is optional; leave it out or set to null to match any boat.
+#
+# Example:
+# watches:
+#   - lake: "Minnetonka - Browns Bay"
+#     date: "2026-08-16"
+#     boat_type: null
+
+watches: []
