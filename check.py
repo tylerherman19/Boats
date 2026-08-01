@@ -52,14 +52,45 @@ def notify(sms_to, subject, body):
         server.sendmail(gmail_address, [sms_to], msg.as_string())
 
 
+def lakes_of(w):
+    return w.get("lakes") or ([w["lake"]] if "lake" in w else [])
+
+
+def boat_types_of(w):
+    return w.get("boat_types") or ([w["boat_type"]] if w.get("boat_type") else [])
+
+
+def send_confirmation(sms_to):
+    raw = os.environ.get("NEW_WATCH", "")
+    if not raw:
+        return
+    try:
+        watch = json.loads(raw)
+    except json.JSONDecodeError:
+        return
+
+    lakes = lakes_of(watch)
+    boat_types = boat_types_of(watch)
+    boat_type_str = ", ".join(boat_types) if boat_types else "any boat"
+    lake_str = ", ".join(lakes)
+    notify(
+        sms_to,
+        "Boat Watch set",
+        f"Your watch for {boat_type_str} is set for {lake_str} on {watch.get('date')}. "
+        f"I'll text you if anything opens up.",
+    )
+
+
 def main():
     with open("watches.json") as f:
         watches = json.load(f) or []
+
+    sms_to = get_sms_to()
+    send_confirmation(sms_to)
+
     if not watches:
         print("No active watches. Exiting.")
         return
-
-    sms_to = get_sms_to()
 
     try:
         with open("state.json") as f:
@@ -72,9 +103,9 @@ def main():
 
     changed = False
     for w in watches:
-        lakes = w.get("lakes") or ([w["lake"]] if "lake" in w else [])
+        lakes = lakes_of(w)
         date_str = w["date"].replace("-", "")
-        boat_type = w.get("boat_type")
+        boat_types = [b.lower() for b in boat_types_of(w)]
 
         for lake in lakes:
             key = f"{lake}|{w['date']}"
@@ -85,8 +116,8 @@ def main():
                 continue
 
             slots = get_available(loc_id, date_str)
-            if boat_type:
-                slots = [s for s in slots if s.get("boatType", "").lower() == boat_type.lower()]
+            if boat_types:
+                slots = [s for s in slots if s.get("boatType", "").lower() in boat_types]
 
             seen = set(state.get(key, []))
             new_slots = []
