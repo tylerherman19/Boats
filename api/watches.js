@@ -1,8 +1,6 @@
-const nodemailer = require("nodemailer");
-
 const REPO = "tylerherman19/Boats";
 const WATCHES_API = `https://api.github.com/repos/${REPO}/contents/watches.json`;
-const SETTINGS_API = `https://api.github.com/repos/${REPO}/contents/settings.json`;
+const DISPATCH_API = `https://api.github.com/repos/${REPO}/actions/workflows/watch.yml/dispatches`;
 
 async function ghGet(api) {
   const res = await fetch(api, {
@@ -61,26 +59,15 @@ function lakesOf(w) {
   return w.lakes || (w.lake ? [w.lake] : []);
 }
 
-async function sendText(subject, body) {
-  const { content: settings } = await ghGet(SETTINGS_API);
-  const smsTo = settings.sms_to;
-  if (!smsTo) return;
-
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.GMAIL_ADDRESS,
-      pass: process.env.GMAIL_APP_PASSWORD,
+async function triggerCheck() {
+  await fetch(DISPATCH_API, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GH_TOKEN}`,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
     },
-  });
-
-  await transporter.sendMail({
-    from: process.env.GMAIL_ADDRESS,
-    to: smsTo,
-    subject,
-    text: body,
+    body: JSON.stringify({ ref: "main" }),
   });
 }
 
@@ -104,12 +91,9 @@ module.exports = async (req, res) => {
           `Add watch: ${lakesOf(watch).join(", ")} ${watch.date}`
         );
         try {
-          await sendText(
-            "Boat Watch set",
-            `Watch set: ${lakesOf(watch).join(", ")} on ${watch.date}${watch.boat_type ? ` (${watch.boat_type})` : ""}. I'll text you if anything opens up.`
-          );
+          await triggerCheck();
         } catch (e) {
-          console.error("confirmation text failed:", e.message);
+          console.error("trigger check failed:", e.message);
         }
       } else if (action === "remove") {
         await mutate(
