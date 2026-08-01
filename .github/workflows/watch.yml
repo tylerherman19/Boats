@@ -30,6 +30,9 @@ jobs:
           git config user.email "actions@github.com"
           if [ -f state.json ]; then
             git add state.json
-            git diff --staged --quiet || git commit -m "Update watch state [skip ci]"
-            git push
+            if ! git diff --staged --quiet; then
+              git commit -m "Update watch state [skip ci]"
+              git pull --rebase origin main
+              git push
+            fi
           fi
