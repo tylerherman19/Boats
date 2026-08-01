@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 
 API_BASE = "https://yourboatclub.com/boatclubappsreservation"
 BOOKING_URL = "https://yourboatclub.com/boatclubappsreservation/reservation/index.html"
-SMS_TO = "7634432772@tmomail.net"
+DEFAULT_SMS_TO = "7634432772@tmomail.net"
 
 
 def fetch_json(url):
@@ -28,19 +28,28 @@ def get_available(location_id, date_str):
     return fetch_json(url)
 
 
-def notify(subject, body):
+def get_sms_to():
+    try:
+        with open("settings.json") as f:
+            settings = json.load(f)
+        return settings.get("sms_to") or DEFAULT_SMS_TO
+    except FileNotFoundError:
+        return DEFAULT_SMS_TO
+
+
+def notify(sms_to, subject, body):
     gmail_address = os.environ["GMAIL_ADDRESS"]
     gmail_password = os.environ["GMAIL_APP_PASSWORD"]
 
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = gmail_address
-    msg["To"] = SMS_TO
+    msg["To"] = sms_to
 
     with smtplib.SMTP("smtp.gmail.com", 587) as server:
         server.starttls()
         server.login(gmail_address, gmail_password)
-        server.sendmail(gmail_address, [SMS_TO], msg.as_string())
+        server.sendmail(gmail_address, [sms_to], msg.as_string())
 
 
 def main():
@@ -49,6 +58,8 @@ def main():
     if not watches:
         print("No active watches. Exiting.")
         return
+
+    sms_to = get_sms_to()
 
     try:
         with open("state.json") as f:
@@ -61,43 +72,46 @@ def main():
 
     changed = False
     for w in watches:
-        lake = w["lake"]
+        lakes = w.get("lakes") or ([w["lake"]] if "lake" in w else [])
         date_str = w["date"].replace("-", "")
         boat_type = w.get("boat_type")
-        key = f"{lake}|{w['date']}"
 
-        loc_id = name_to_id.get(lake)
-        if loc_id is None:
-            print(f"WARNING: unknown lake '{lake}', skipping")
-            continue
+        for lake in lakes:
+            key = f"{lake}|{w['date']}"
 
-        slots = get_available(loc_id, date_str)
-        if boat_type:
-            slots = [s for s in slots if s.get("boatType", "").lower() == boat_type.lower()]
+            loc_id = name_to_id.get(lake)
+            if loc_id is None:
+                print(f"WARNING: unknown lake '{lake}', skipping")
+                continue
 
-        seen = set(state.get(key, []))
-        new_slots = []
-        for s in slots:
-            sig = f"{s['boatID']}-{s['startTime']}-{s['resType']}"
-            if sig not in seen:
-                new_slots.append(s)
-                seen.add(sig)
+            slots = get_available(loc_id, date_str)
+            if boat_type:
+                slots = [s for s in slots if s.get("boatType", "").lower() == boat_type.lower()]
 
-        if new_slots:
-            changed = True
-            state[key] = list(seen)
-            lines = [
-                f"{s['boatName']} ({s['resType']}) {s['startTime']}-{s['endTime']} "
-                f"${s['fullFee']}"
-                for s in new_slots
-            ]
-            notify(
-                f"Boat opened: {lake} {w['date']}",
-                "\n".join(lines) + f"\n\nBook: {BOOKING_URL}",
-            )
-            print(f"ALERTED: {key} -> {len(new_slots)} new slot(s)")
-        else:
-            print(f"No new slots: {key}")
+            seen = set(state.get(key, []))
+            new_slots = []
+            for s in slots:
+                sig = f"{s['boatID']}-{s['startTime']}-{s['resType']}"
+                if sig not in seen:
+                    new_slots.append(s)
+                    seen.add(sig)
+
+            if new_slots:
+                changed = True
+                state[key] = list(seen)
+                lines = [
+                    f"{s['boatName']} ({s['resType']}) {s['startTime']}-{s['endTime']} "
+                    f"${s['fullFee']}"
+                    for s in new_slots
+                ]
+                notify(
+                    sms_to,
+                    f"Boat opened: {lake} {w['date']}",
+                    "\n".join(lines) + f"\n\nBook: {BOOKING_URL}",
+                )
+                print(f"ALERTED: {key} -> {len(new_slots)} new slot(s)")
+            else:
+                print(f"No new slots: {key}")
 
     if changed:
         with open("state.json", "w") as f:
