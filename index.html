@@ -7,25 +7,37 @@
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #f5f6f8;
+    --bg: #eef2f6;
     --card: #ffffff;
-    --text: #1a1d23;
-    --muted: #6b7280;
-    --border: #e2e4e9;
-    --accent: #0b6efd;
+    --text: #14181f;
+    --muted: #66707d;
+    --border: #dde3ea;
+    --accent: #1462f2;
+    --accent-hover: #0f52d1;
     --accent-text: #ffffff;
     --danger: #d93025;
+    --chip-bg: #eef2f6;
+    --chip-border: #d7dee6;
+    --chip-selected-bg: #e8f0fe;
+    --chip-selected-border: #1462f2;
+    --shadow: 0 1px 2px rgba(20,24,31,0.04), 0 8px 24px rgba(20,24,31,0.06);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #14161a;
-      --card: #1e2128;
-      --text: #f0f1f3;
-      --muted: #9aa0aa;
-      --border: #2c303a;
-      --accent: #4b9bff;
-      --accent-text: #0b1220;
+      --bg: #0d0f13;
+      --card: #191c22;
+      --text: #eef1f5;
+      --muted: #93a0af;
+      --border: #2a2f38;
+      --accent: #4b8bff;
+      --accent-hover: #6b9eff;
+      --accent-text: #06101f;
       --danger: #ff6b6b;
+      --chip-bg: #21252d;
+      --chip-border: #2f3540;
+      --chip-selected-bg: #16233d;
+      --chip-selected-border: #4b8bff;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
     }
   }
   * { box-sizing: border-box; }
@@ -34,91 +46,174 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 20px;
+    padding: 28px 16px 60px;
   }
-  .wrap { max-width: 560px; margin: 0 auto; }
-  h1 { font-size: 1.4rem; margin-bottom: 4px; }
-  p.sub { color: var(--muted); margin-top: 0; font-size: 0.9rem; }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  header { margin-bottom: 22px; }
+  header .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  p.sub { color: var(--muted); margin: 0; font-size: 0.95rem; line-height: 1.4; }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
   }
-  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 10px 0 4px; }
-  select, input {
+  .card h2 {
+    font-size: 0.95rem;
+    margin: 0 0 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  label.field-label {
+    display: block; font-size: 0.8rem; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em;
+    margin: 18px 0 8px;
+  }
+  label.field-label:first-of-type { margin-top: 0; }
+  select, input[type="date"], input[type="password"] {
     width: 100%;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 11px 12px;
+    border-radius: 10px;
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text);
     font-size: 1rem;
+    font-family: inherit;
   }
+  select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .lake-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .lake-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--chip-border);
+    background: var(--chip-bg);
+    cursor: pointer;
+    font-size: 0.87rem;
+    user-select: none;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .lake-chip input { margin: 0; accent-color: var(--accent); flex-shrink: 0; }
+  .lake-chip.selected { background: var(--chip-selected-bg); border-color: var(--chip-selected-border); }
+  .lake-quick { display: flex; gap: 8px; margin-top: 10px; }
+
   button {
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 10px 16px;
     font-size: 0.95rem;
+    font-weight: 600;
     cursor: pointer;
+    font-family: inherit;
+    transition: background 0.12s, opacity 0.12s;
   }
-  .btn-primary { background: var(--accent); color: var(--accent-text); width: 100%; margin-top: 14px; }
-  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 10px; font-size: 0.85rem; }
-  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 0.85rem; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .btn-primary { background: var(--accent); color: var(--accent-text); width: 100%; margin-top: 20px; padding: 13px; font-size: 1rem; }
+  .btn-primary:not(:disabled):hover { background: var(--accent-hover); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; font-size: 0.82rem; font-weight: 500; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 0.82rem; font-weight: 500; padding: 6px 12px; }
+
   .watch-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 0;
     border-bottom: 1px solid var(--border);
   }
   .watch-row:last-child { border-bottom: none; }
   .watch-meta { font-size: 0.9rem; }
-  .watch-meta .lake { font-weight: 600; }
-  .watch-meta .detail { color: var(--muted); font-size: 0.8rem; }
-  #status { font-size: 0.85rem; margin-top: 10px; min-height: 1.2em; }
+  .watch-meta .lakes { font-weight: 600; margin-bottom: 2px; }
+  .watch-meta .detail { color: var(--muted); font-size: 0.82rem; }
+  .pill {
+    display: inline-block; background: var(--chip-bg); border: 1px solid var(--chip-border);
+    border-radius: 999px; padding: 1px 8px; font-size: 0.75rem; margin-top: 4px; color: var(--muted);
+  }
+
+  #status { font-size: 0.85rem; margin-top: 12px; min-height: 1.2em; }
   #status.ok { color: #1a9e5c; }
   #status.err { color: var(--danger); }
-  details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
-  .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
+
+  details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; font-weight: 500; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "▸ "; }
+  details[open] summary::before { content: "▾ "; }
+  details[open] summary { margin-bottom: 12px; }
+  .token-card { padding: 16px 20px; }
+
+  .empty { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
+  .footnote { color: var(--muted); font-size: 0.78rem; margin-top: 10px; line-height: 1.4; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Boat Watch</h1>
-  <p class="sub">Pick a lake + date. Get a text the moment a boat opens up.</p>
+  <header>
+    <div class="badge">🚤 Boat Watch</div>
+    <h1>Never miss a reservation</h1>
+    <p class="sub">Pick lakes + a date. Get a text the moment a boat opens up — a cancellation, or a spot that's already free.</p>
+  </header>
 
-  <div class="card">
+  <div class="card token-card">
     <details id="tokenDetails">
-      <summary>GitHub access token (required once)</summary>
-      <label for="tokenInput">Fine-grained PAT, Contents: Read &amp; Write, scoped to this repo only</label>
+      <summary>GitHub access token (one-time setup)</summary>
+      <label class="field-label" for="tokenInput">Fine-grained PAT, Contents: Read &amp; Write, scoped to this repo only</label>
       <input id="tokenInput" type="password" placeholder="github_pat_...">
-      <button class="btn-ghost" style="margin-top:8px;" onclick="saveToken()">Save token</button>
-      <div id="tokenStatus" style="font-size:0.8rem; margin-top:6px; color: var(--muted);"></div>
+      <button class="btn-ghost" style="margin-top:10px;" onclick="saveToken()">Save token</button>
+      <div id="tokenStatus" class="footnote"></div>
+    </details>
+  </div>
+
+  <div class="card token-card">
+    <details id="phoneDetails">
+      <summary>Text goes to (T-Mobile)</summary>
+      <label class="field-label" for="phoneInput">10-digit phone number</label>
+      <input id="phoneInput" type="text" placeholder="7634432772" inputmode="numeric" maxlength="10">
+      <button class="btn-ghost" style="margin-top:10px;" onclick="savePhone()">Save number</button>
+      <div id="phoneStatus" class="footnote"></div>
     </details>
   </div>
 
   <div class="card">
-    <label for="lakeSelect">Lake</label>
-    <select id="lakeSelect"></select>
+    <h2>New watch</h2>
 
-    <label for="dateInput">Date</label>
+    <label class="field-label">Lakes (pick one or more)</label>
+    <div class="lake-grid" id="lakeGrid"></div>
+    <div class="lake-quick">
+      <button class="btn-ghost" onclick="selectAllLakes(true)">Select all</button>
+      <button class="btn-ghost" onclick="selectAllLakes(false)">Clear</button>
+    </div>
+
+    <label class="field-label" for="dateInput">Date</label>
     <input id="dateInput" type="date">
 
-    <label for="boatType">Boat type (optional, e.g. Pontoon)</label>
-    <input id="boatType" type="text" placeholder="Any">
+    <label class="field-label" for="boatType">Boat type</label>
+    <select id="boatType">
+      <option value="">Any</option>
+      <option value="Pontoon">Pontoon</option>
+      <option value="Runabout">Runabout</option>
+      <option value="Fishing">Fishing</option>
+    </select>
 
     <button class="btn-primary" onclick="addWatch()">Add watch</button>
     <div id="status"></div>
   </div>
 
   <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <strong>Active watches</strong>
-      <button class="btn-ghost" onclick="loadWatches()">Refresh</button>
-    </div>
+    <h2>Active watches <button class="btn-ghost" onclick="loadWatches()">Refresh</button></h2>
     <div id="watchList"></div>
+    <div class="footnote">Alerts fire the first time a slot appears for a watch — including right away if one's already open. It won't repeat for the same slot.</div>
   </div>
 </div>
 
@@ -126,7 +221,9 @@
 const OWNER = "tylerherman19";
 const REPO = "Boats";
 const FILE = "watches.json";
+const SETTINGS_FILE = "settings.json";
 const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`;
+const SETTINGS_API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${SETTINGS_FILE}`;
 
 const LAKES = [
   "Big Sandy", "Champlin", "Cross Lake", "Forest Lake", "Gull Lake",
@@ -145,11 +242,34 @@ function saveToken() {
   document.getElementById("tokenStatus").textContent = "Token saved in this browser.";
   document.getElementById("tokenDetails").open = false;
   loadWatches();
+  loadPhone();
 }
 
 function initLakes() {
-  const sel = document.getElementById("lakeSelect");
-  sel.innerHTML = LAKES.map(l => `<option value="${l}">${l}</option>`).join("");
+  const grid = document.getElementById("lakeGrid");
+  grid.innerHTML = LAKES.map((l, i) => `
+    <label class="lake-chip" id="chip-${i}">
+      <input type="checkbox" value="${l}" onchange="onLakeToggle(${i})">
+      ${l}
+    </label>
+  `).join("");
+}
+
+function onLakeToggle(i) {
+  const chip = document.getElementById(`chip-${i}`);
+  const cb = chip.querySelector("input");
+  chip.classList.toggle("selected", cb.checked);
+}
+
+function selectAllLakes(state) {
+  document.querySelectorAll("#lakeGrid input[type=checkbox]").forEach(cb => {
+    cb.checked = state;
+    cb.dispatchEvent(new Event("change"));
+  });
+}
+
+function getSelectedLakes() {
+  return Array.from(document.querySelectorAll("#lakeGrid input[type=checkbox]:checked")).map(cb => cb.value);
 }
 
 function setStatus(msg, isErr) {
@@ -186,9 +306,33 @@ async function ghPut(newContent, sha, message) {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`GitHub write failed: ${res.status} ${text}`);
+    const err = new Error(`GitHub write failed: ${res.status} ${text}`);
+    err.status = res.status;
+    throw err;
   }
 }
+
+async function mutateWatches(mutateFn, message) {
+  const { content, sha } = await ghGet();
+  const newContent = mutateFn(content);
+  try {
+    await ghPut(newContent, sha, message);
+  } catch (e) {
+    if (e.status === 409) {
+      const retry = await ghGet();
+      const retryContent = mutateFn(retry.content);
+      await ghPut(retryContent, retry.sha, message);
+    } else {
+      throw e;
+    }
+  }
+}
+
+function setButtonsDisabled(disabled) {
+  document.querySelectorAll("button").forEach(b => b.disabled = disabled);
+}
+
+let currentWatches = [];
 
 async function loadWatches() {
   const listEl = document.getElementById("watchList");
@@ -198,19 +342,24 @@ async function loadWatches() {
   }
   try {
     const { content } = await ghGet();
+    currentWatches = content;
     if (!content.length) {
       listEl.innerHTML = '<div class="empty">No active watches.</div>';
       return;
     }
-    listEl.innerHTML = content.map((w, i) => `
+    listEl.innerHTML = content.map((w, i) => {
+      const lakes = w.lakes || (w.lake ? [w.lake] : []);
+      return `
       <div class="watch-row">
         <div class="watch-meta">
-          <div class="lake">${w.lake}</div>
-          <div class="detail">${w.date}${w.boat_type ? " &middot; " + w.boat_type : ""}</div>
+          <div class="lakes">${lakes.join(", ")}</div>
+          <div class="detail">${w.date}</div>
+          ${w.boat_type ? `<span class="pill">${w.boat_type}</span>` : ""}
         </div>
         <button class="btn-danger" onclick="removeWatch(${i})">Remove</button>
       </div>
-    `).join("");
+    `;
+    }).join("");
   } catch (e) {
     listEl.innerHTML = `<div class="empty">Error loading watches: ${e.message}</div>`;
   }
@@ -218,41 +367,119 @@ async function loadWatches() {
 
 async function addWatch() {
   if (!token()) { setStatus("Add your GitHub token first.", true); return; }
-  const lake = document.getElementById("lakeSelect").value;
+  const lakes = getSelectedLakes();
   const date = document.getElementById("dateInput").value;
-  const boat_type = document.getElementById("boatType").value.trim() || null;
+  const boat_type = document.getElementById("boatType").value || null;
+  if (!lakes.length) { setStatus("Pick at least one lake.", true); return; }
   if (!date) { setStatus("Pick a date.", true); return; }
 
   setStatus("Saving...", false);
+  setButtonsDisabled(true);
   try {
-    const { content, sha } = await ghGet();
-    content.push({ lake, date, boat_type });
-    await ghPut(content, sha, `Add watch: ${lake} ${date}`);
+    await mutateWatches(
+      content => { content.push({ lakes, date, boat_type }); return content; },
+      `Add watch: ${lakes.join(", ")} ${date}`
+    );
     setStatus("Watch added. Next check runs within 5 minutes.", false);
     document.getElementById("dateInput").value = "";
     document.getElementById("boatType").value = "";
-    loadWatches();
+    selectAllLakes(false);
+    await loadWatches();
   } catch (e) {
     setStatus(e.message, true);
+  } finally {
+    setButtonsDisabled(false);
   }
 }
 
 async function removeWatch(index) {
   if (!token()) { setStatus("Add your GitHub token first.", true); return; }
+  const target = currentWatches[index];
+  if (!target) return;
+  const targetLakes = JSON.stringify(target.lakes || (target.lake ? [target.lake] : []));
   setStatus("Removing...", false);
+  setButtonsDisabled(true);
   try {
-    const { content, sha } = await ghGet();
-    const removed = content.splice(index, 1)[0];
-    await ghPut(content, sha, `Remove watch: ${removed.lake} ${removed.date}`);
+    await mutateWatches(
+      content => content.filter(w => {
+        const wLakes = JSON.stringify(w.lakes || (w.lake ? [w.lake] : []));
+        return !(wLakes === targetLakes && w.date === target.date && w.boat_type === target.boat_type);
+      }),
+      `Remove watch: ${target.date}`
+    );
     setStatus("Watch removed.", false);
-    loadWatches();
+    await loadWatches();
   } catch (e) {
     setStatus(e.message, true);
+  } finally {
+    setButtonsDisabled(false);
+  }
+}
+
+async function loadPhone() {
+  if (!token()) return;
+  try {
+    const res = await fetch(SETTINGS_API, {
+      headers: { Authorization: `Bearer ${token()}`, Accept: "application/vnd.github+json" }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const settings = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+    const smsTo = settings.sms_to || "";
+    const number = smsTo.split("@")[0];
+    if (number) {
+      document.getElementById("phoneInput").placeholder = number;
+      document.getElementById("phoneStatus").textContent = `Currently: ${number}`;
+    }
+  } catch (e) {
+    // non-fatal
+  }
+}
+
+async function savePhone() {
+  if (!token()) { document.getElementById("phoneStatus").textContent = "Add your GitHub token first."; return; }
+  const digits = document.getElementById("phoneInput").value.replace(/\D/g, "");
+  if (digits.length !== 10) {
+    document.getElementById("phoneStatus").textContent = "Enter a 10-digit number.";
+    return;
+  }
+  setButtonsDisabled(true);
+  document.getElementById("phoneStatus").textContent = "Saving...";
+  try {
+    const res = await fetch(SETTINGS_API, {
+      headers: { Authorization: `Bearer ${token()}`, Accept: "application/vnd.github+json" }
+    });
+    const data = res.ok ? await res.json() : null;
+    const sha = data ? data.sha : undefined;
+    const newSettings = { sms_to: `${digits}@tmomail.net` };
+    const body = {
+      message: `Update SMS recipient`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(newSettings, null, 2) + "\n"))),
+      branch: "main"
+    };
+    if (sha) body.sha = sha;
+    const putRes = await fetch(SETTINGS_API, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token()}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+    if (!putRes.ok) throw new Error(`Save failed: ${putRes.status}`);
+    document.getElementById("phoneStatus").textContent = `Saved. Texts now go to ${digits}.`;
+    document.getElementById("phoneInput").value = "";
+    document.getElementById("phoneInput").placeholder = digits;
+  } catch (e) {
+    document.getElementById("phoneStatus").textContent = e.message;
+  } finally {
+    setButtonsDisabled(false);
   }
 }
 
 initLakes();
-if (token()) loadWatches();
+if (token()) { loadWatches(); loadPhone(); }
 else document.getElementById("tokenDetails").open = true;
 </script>
 </body>
