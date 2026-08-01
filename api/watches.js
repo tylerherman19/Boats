@@ -61,7 +61,11 @@ function lakesOf(w) {
   return w.lakes || (w.lake ? [w.lake] : []);
 }
 
-async function triggerCheck() {
+function boatTypesOf(w) {
+  return w.boat_types || (w.boat_type ? [w.boat_type] : []);
+}
+
+async function triggerCheck(newWatch) {
   await fetch(DISPATCH_API, {
     method: "POST",
     headers: {
@@ -69,7 +73,10 @@ async function triggerCheck() {
       Accept: "application/vnd.github+json",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ ref: "main" }),
+    body: JSON.stringify({
+      ref: "main",
+      inputs: { new_watch: newWatch ? JSON.stringify(newWatch) : "" },
+    }),
   });
 }
 
@@ -93,7 +100,7 @@ module.exports = async (req, res) => {
           `Add watch: ${lakesOf(watch).join(", ")} ${watch.date}`
         );
         try {
-          await triggerCheck();
+          await triggerCheck(watch);
         } catch (e) {
           console.error("trigger check failed:", e.message);
         }
@@ -105,7 +112,9 @@ module.exports = async (req, res) => {
           (c) => c.filter((w) => {
             const wLakes = JSON.stringify(lakesOf(w));
             const tLakes = JSON.stringify(lakesOf(watch));
-            return !(wLakes === tLakes && w.date === watch.date && w.boat_type === watch.boat_type);
+            const wTypes = JSON.stringify(boatTypesOf(w));
+            const tTypes = JSON.stringify(boatTypesOf(watch));
+            return !(wLakes === tLakes && w.date === watch.date && wTypes === tTypes);
           }),
           `Remove watch: ${watch.date}`
         );
