@@ -37,7 +37,8 @@ def get_available(location_id, date_str):
         f"{API_BASE}/wrapperrs/restrs?service=availablereservations"
         f"&id=0&type=%7Cmember%7C0&search={urllib.parse.quote(q)}"
     )
-    return fetch_json(url)
+    slots = fetch_json(url)
+    return [s for s in slots if not s.get("rentalFee")]
 
 
 def get_sms_to():

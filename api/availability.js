@@ -46,12 +46,13 @@ function getLocations() {
   return fetchJson(`${API_BASE}/wrapper/rest?service=locations`);
 }
 
-function getAvailable(locationId, dateStr) {
+async function getAvailable(locationId, dateStr) {
   const q = `|locationids|${locationId}|fromdate|${dateStr}|todate|${dateStr}`;
   const url =
     `${API_BASE}/wrapperrs/restrs?service=availablereservations` +
     `&id=0&type=%7Cmember%7C0&search=${encodeURIComponent(q)}`;
-  return fetchJson(url);
+  const slots = await fetchJson(url);
+  return slots.filter((s) => !s.rentalFee);
 }
 
 module.exports = async (req, res) => {
