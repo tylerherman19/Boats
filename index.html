@@ -155,6 +155,16 @@
 
   .empty { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
   .footnote { color: var(--muted); font-size: 0.78rem; margin-top: 10px; line-height: 1.4; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 9px 16px; border-radius: 10px; font-size: 0.87rem; font-weight: 600;
+  }
+  .tab-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  a.btn-ghost { display: inline-block; text-decoration: none; }
+  .avail-counts { margin-top: 4px; }
+  .avail-counts .pill { margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -165,40 +175,56 @@
     <p class="sub">Pick lakes + a date. Get a text the moment a boat opens up — a cancellation, or a spot that's already free.</p>
   </header>
 
-  <div class="card token-card">
-    <details id="phoneDetails">
-      <summary>Text goes to (T-Mobile)</summary>
-      <label class="field-label" for="phoneInput">10-digit phone number</label>
-      <input id="phoneInput" type="text" placeholder="7634432772" inputmode="numeric" maxlength="10">
-      <button class="btn-ghost" style="margin-top:10px;" onclick="savePhone()">Save number</button>
-      <div id="phoneStatus" class="footnote"></div>
-    </details>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnWatches" onclick="switchTab('watches')">Watches</button>
+    <button class="tab-btn" id="tabBtnAvailability" onclick="switchTab('availability')">Live Availability</button>
   </div>
 
-  <div class="card">
-    <h2>New watch</h2>
-
-    <label class="field-label">Lakes (pick one or more)</label>
-    <div class="lake-grid" id="lakeGrid"></div>
-    <div class="lake-quick">
-      <button class="btn-ghost" onclick="selectAllLakes(true)">Select all</button>
-      <button class="btn-ghost" onclick="selectAllLakes(false)">Clear</button>
+  <div id="tabWatches">
+    <div class="card token-card">
+      <details id="phoneDetails">
+        <summary>Text goes to (T-Mobile)</summary>
+        <label class="field-label" for="phoneInput">10-digit phone number</label>
+        <input id="phoneInput" type="text" placeholder="7634432772" inputmode="numeric" maxlength="10">
+        <button class="btn-ghost" style="margin-top:10px;" onclick="savePhone()">Save number</button>
+        <div id="phoneStatus" class="footnote"></div>
+      </details>
     </div>
 
-    <label class="field-label" for="dateInput">Date</label>
-    <input id="dateInput" type="date">
+    <div class="card">
+      <h2>New watch</h2>
 
-    <label class="field-label">Boat type (pick one or more, or leave blank for any)</label>
-    <div class="lake-grid" id="boatTypeGrid"></div>
+      <label class="field-label">Lakes (pick one or more)</label>
+      <div class="lake-grid" id="lakeGrid"></div>
+      <div class="lake-quick">
+        <button class="btn-ghost" onclick="selectAllLakes(true)">Select all</button>
+        <button class="btn-ghost" onclick="selectAllLakes(false)">Clear</button>
+      </div>
 
-    <button class="btn-primary" onclick="addWatch()">Add watch</button>
-    <div id="status"></div>
+      <label class="field-label" for="dateInput">Date</label>
+      <input id="dateInput" type="date">
+
+      <label class="field-label">Boat type (pick one or more, or leave blank for any)</label>
+      <div class="lake-grid" id="boatTypeGrid"></div>
+
+      <button class="btn-primary" onclick="addWatch()">Add watch</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Active watches <button class="btn-ghost" onclick="loadWatches()">Refresh</button></h2>
+      <div id="watchList"></div>
+      <div class="footnote">Alerts fire the first time a slot appears for a watch — including right away if one's already open. It won't repeat for the same slot.</div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Active watches <button class="btn-ghost" onclick="loadWatches()">Refresh</button></h2>
-    <div id="watchList"></div>
-    <div class="footnote">Alerts fire the first time a slot appears for a watch — including right away if one's already open. It won't repeat for the same slot.</div>
+  <div id="tabAvailability" style="display:none;">
+    <div class="card">
+      <h2>Live availability <button class="btn-ghost" onclick="loadAvailability()">Refresh</button></h2>
+      <div id="availDate" class="footnote"></div>
+      <div id="availList"></div>
+      <div class="footnote">Pulled straight from the reservation API — not from your watches. Use Book to reserve; this page can't book for you.</div>
+    </div>
   </div>
 </div>
 
@@ -395,6 +421,70 @@ async function savePhone() {
     document.getElementById("phoneStatus").textContent = e.message;
   } finally {
     setButtonsDisabled(false);
+  }
+}
+
+let availabilityLoaded = false;
+
+function switchTab(tab) {
+  document.getElementById("tabWatches").style.display = tab === "watches" ? "" : "none";
+  document.getElementById("tabAvailability").style.display = tab === "availability" ? "" : "none";
+  document.getElementById("tabBtnWatches").classList.toggle("active", tab === "watches");
+  document.getElementById("tabBtnAvailability").classList.toggle("active", tab === "availability");
+  if (tab === "availability" && !availabilityLoaded) {
+    loadAvailability();
+  }
+}
+
+function formatDateLabel(dateStr) {
+  if (!dateStr || dateStr.length !== 8) return dateStr;
+  return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+}
+
+async function loadAvailability() {
+  const listEl = document.getElementById("availList");
+  const dateEl = document.getElementById("availDate");
+  listEl.innerHTML = '<div class="empty">Loading...</div>';
+  try {
+    const res = await fetch(`/api/availability?t=${Date.now()}`, {
+      headers: { "x-site-secret": SITE_SECRET },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Load failed: ${res.status}`);
+    const data = await res.json();
+    availabilityLoaded = true;
+    dateEl.textContent = `Showing ${formatDateLabel(data.date)} — today`;
+
+    listEl.innerHTML = data.locations.map((loc) => {
+      if (loc.error) {
+        return `
+        <div class="watch-row">
+          <div class="watch-meta">
+            <div class="lakes">${loc.lake}</div>
+            <div class="detail">Error: ${loc.error}</div>
+          </div>
+        </div>`;
+      }
+      const pontoon = loc.counts["Pontoon"] || 0;
+      const runabout = loc.counts["Runabout"] || 0;
+      const fishing = loc.counts["Fishing"] || 0;
+      const total = loc.slots.length;
+      return `
+      <div class="watch-row">
+        <div class="watch-meta">
+          <div class="lakes">${loc.lake}</div>
+          <div class="detail">${total ? `${total} open` : "Nothing open"}</div>
+          <div class="avail-counts">
+            <span class="pill">Pontoon: ${pontoon}</span>
+            <span class="pill">Runabout: ${runabout}</span>
+            ${fishing ? `<span class="pill">Fishing: ${fishing}</span>` : ""}
+          </div>
+        </div>
+        <a class="btn-ghost" href="${data.bookingUrl}" target="_blank" rel="noopener">Book</a>
+      </div>`;
+    }).join("");
+  } catch (e) {
+    listEl.innerHTML = `<div class="empty">Error loading availability: ${e.message}</div>`;
   }
 }
 
