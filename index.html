@@ -544,9 +544,6 @@ async function loadAvailability() {
         .filter((rt) => resGroups[rt])
         .map((rt) => `<div class="detail">${RES_TYPE_LABEL[rt] || rt}: ${resTypeGroupLine(resGroups[rt])}</div>`)
         .join("");
-      const allDayLine = loc.allDayCounts && Object.keys(loc.allDayCounts).length
-        ? `<div class="detail">Could book all day (separate AM + PM): ${resTypeGroupLine(loc.allDayCounts)}</div>`
-        : "";
       return `
       <div class="watch-row">
         <div class="watch-meta">
@@ -561,7 +558,6 @@ async function loadAvailability() {
           <details>
             <summary>AM / PM breakdown</summary>
             ${resLines}
-            ${allDayLine}
           </details>` : ""}
         </div>
         <a class="btn-ghost" href="${data.bookingUrl}" target="_blank" rel="noopener">Book</a>
