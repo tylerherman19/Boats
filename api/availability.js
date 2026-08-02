@@ -28,6 +28,14 @@ function todayStr() {
   return `${yyyy}${mm}${dd}`;
 }
 
+function normalizeDate(input) {
+  if (!input) return todayStr();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input);
+  if (m) return `${m[1]}${m[2]}${m[3]}`;
+  if (/^\d{8}$/.test(input)) return input;
+  return todayStr();
+}
+
 async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Upstream fetch failed: ${res.status}`);
@@ -55,7 +63,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const dateStr = todayStr();
+    const dateStr = normalizeDate(req.query && req.query.date);
     const locations = await getLocations();
     const nameToId = {};
     for (const loc of locations) nameToId[loc.name] = loc.ID;

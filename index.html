@@ -221,6 +221,8 @@
   <div id="tabAvailability" style="display:none;">
     <div class="card">
       <h2>Live availability <button class="btn-ghost" onclick="loadAvailability()">Refresh</button></h2>
+      <label class="field-label" for="availDateInput">Date</label>
+      <input id="availDateInput" type="date" onchange="loadAvailability()">
       <div id="availDate" class="footnote"></div>
       <div id="availList"></div>
       <div class="footnote">Pulled straight from the reservation API — not from your watches. Use Book to reserve; this page can't book for you.</div>
@@ -431,8 +433,13 @@ function switchTab(tab) {
   document.getElementById("tabAvailability").style.display = tab === "availability" ? "" : "none";
   document.getElementById("tabBtnWatches").classList.toggle("active", tab === "watches");
   document.getElementById("tabBtnAvailability").classList.toggle("active", tab === "availability");
-  if (tab === "availability" && !availabilityLoaded) {
-    loadAvailability();
+  if (tab === "availability") {
+    const dateInput = document.getElementById("availDateInput");
+    if (!dateInput.value) {
+      const d = new Date();
+      dateInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+    if (!availabilityLoaded) loadAvailability();
   }
 }
 
@@ -444,16 +451,17 @@ function formatDateLabel(dateStr) {
 async function loadAvailability() {
   const listEl = document.getElementById("availList");
   const dateEl = document.getElementById("availDate");
+  const chosenDate = document.getElementById("availDateInput").value;
   listEl.innerHTML = '<div class="empty">Loading...</div>';
   try {
-    const res = await fetch(`/api/availability?t=${Date.now()}`, {
+    const res = await fetch(`/api/availability?date=${chosenDate}&t=${Date.now()}`, {
       headers: { "x-site-secret": SITE_SECRET },
       cache: "no-store",
     });
     if (!res.ok) throw new Error(`Load failed: ${res.status}`);
     const data = await res.json();
     availabilityLoaded = true;
-    dateEl.textContent = `Showing ${formatDateLabel(data.date)} — today`;
+    dateEl.textContent = `Showing ${formatDateLabel(data.date)}`;
 
     listEl.innerHTML = data.locations.map((loc) => {
       if (loc.error) {
