@@ -188,13 +188,8 @@
     <label class="field-label" for="dateInput">Date</label>
     <input id="dateInput" type="date">
 
-    <label class="field-label" for="boatType">Boat type</label>
-    <select id="boatType">
-      <option value="">Any</option>
-      <option value="Pontoon">Pontoon</option>
-      <option value="Runabout">Runabout</option>
-      <option value="Fishing">Fishing</option>
-    </select>
+    <label class="field-label">Boat type (pick one or more, or leave blank for any)</label>
+    <div class="lake-grid" id="boatTypeGrid"></div>
 
     <button class="btn-primary" onclick="addWatch()">Add watch</button>
     <div id="status"></div>
@@ -216,6 +211,8 @@ const LAKES = [
   "Minnetonka - Browns Bay", "Minnetonka - Smiths Bay", "Prior Lake",
   "St. Croix River", "St. Paul - Watergate", "Vermilion", "Waconia", "White Bear Lake"
 ];
+
+const BOAT_TYPES = ["Pontoon", "Runabout", "Fishing"];
 
 function initLakes() {
   const grid = document.getElementById("lakeGrid");
@@ -242,6 +239,33 @@ function selectAllLakes(state) {
 
 function getSelectedLakes() {
   return Array.from(document.querySelectorAll("#lakeGrid input[type=checkbox]:checked")).map(cb => cb.value);
+}
+
+function initBoatTypes() {
+  const grid = document.getElementById("boatTypeGrid");
+  grid.innerHTML = BOAT_TYPES.map((t, i) => `
+    <label class="lake-chip" id="boatChip-${i}">
+      <input type="checkbox" value="${t}" onchange="onBoatTypeToggle(${i})">
+      ${t}
+    </label>
+  `).join("");
+}
+
+function onBoatTypeToggle(i) {
+  const chip = document.getElementById(`boatChip-${i}`);
+  const cb = chip.querySelector("input");
+  chip.classList.toggle("selected", cb.checked);
+}
+
+function getSelectedBoatTypes() {
+  return Array.from(document.querySelectorAll("#boatTypeGrid input[type=checkbox]:checked")).map(cb => cb.value);
+}
+
+function clearBoatTypes() {
+  document.querySelectorAll("#boatTypeGrid input[type=checkbox]").forEach(cb => {
+    cb.checked = false;
+    cb.dispatchEvent(new Event("change"));
+  });
 }
 
 function setStatus(msg, isErr) {
@@ -291,7 +315,7 @@ async function loadWatches() {
         <div class="watch-meta">
           <div class="lakes">${lakes.join(", ")}</div>
           <div class="detail">${w.date}</div>
-          ${w.boat_type ? `<span class="pill">${w.boat_type}</span>` : ""}
+          ${(w.boat_types || (w.boat_type ? [w.boat_type] : [])).map(t => `<span class="pill">${t}</span>`).join("")}
         </div>
         <button class="btn-danger" onclick="removeWatch(${i})">Remove</button>
       </div>
@@ -305,17 +329,17 @@ async function loadWatches() {
 async function addWatch() {
   const lakes = getSelectedLakes();
   const date = document.getElementById("dateInput").value;
-  const boat_type = document.getElementById("boatType").value || null;
+  const boat_types = getSelectedBoatTypes();
   if (!lakes.length) { setStatus("Pick at least one lake.", true); return; }
   if (!date) { setStatus("Pick a date.", true); return; }
 
   setStatus("Saving...", false);
   setButtonsDisabled(true);
   try {
-    await apiPost("/api/watches", { action: "add", watch: { lakes, date, boat_type } });
+    await apiPost("/api/watches", { action: "add", watch: { lakes, date, boat_types } });
     setStatus("Watch added. Next check runs within 5 minutes.", false);
     document.getElementById("dateInput").value = "";
-    document.getElementById("boatType").value = "";
+    clearBoatTypes();
     selectAllLakes(false);
     await loadWatches();
   } catch (e) {
@@ -375,6 +399,7 @@ async function savePhone() {
 }
 
 initLakes();
+initBoatTypes();
 loadWatches();
 loadPhone();
 </script>
