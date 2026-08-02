@@ -10,6 +10,18 @@ BOOKING_URL = "https://yourboatclub.com/boatclubappsreservation/reservation/inde
 DEFAULT_SMS_TO = "7634432772@tmomail.net"
 
 
+RES_TYPE_LABEL = {"FULL": "Full day", "AM": "AM", "PM": "PM"}
+
+
+def format_time(t):
+    if not t:
+        return ""
+    h, m = (int(p) for p in t.split(":"))
+    period = "PM" if h >= 12 else "AM"
+    h12 = h % 12 or 12
+    return f"{h12}:{m:02d} {period}"
+
+
 def fetch_json(url):
     with urllib.request.urlopen(url, timeout=20) as resp:
         return json.load(resp)
@@ -131,8 +143,9 @@ def main():
                 changed = True
                 state[key] = list(seen)
                 lines = [
-                    f"{s['boatName']} ({s['resType']}) {s['startTime']}-{s['endTime']} "
-                    f"${s['fullFee']}"
+                    f"{s['boatType']} - {RES_TYPE_LABEL.get(s['resType'], s['resType'])} "
+                    f"({format_time(s['startTime'])}-{format_time(s['endTime'])}) "
+                    f"{s['boatName']} - ${s['fullFee']}"
                     for s in new_slots
                 ]
                 notify(
