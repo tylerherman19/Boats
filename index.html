@@ -448,15 +448,31 @@ function formatDateLabel(dateStr) {
   return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 }
 
-function formatTime(t) {
-  if (!t) return "";
-  const [h, m] = t.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+const RES_TYPE_LABEL = { FULL: "Full day", AM: "AM", PM: "PM" };
+const RES_TYPE_ORDER = ["AM", "PM", "FULL"];
+const BOAT_TYPE_ORDER = ["Pontoon", "Runabout", "Fishing"];
+
+function groupSlotsByResType(slots) {
+  const groups = {};
+  for (const s of slots) {
+    const rt = s.resType || "Other";
+    groups[rt] = groups[rt] || {};
+    groups[rt][s.boatType] = (groups[rt][s.boatType] || 0) + 1;
+  }
+  return groups;
 }
 
-const RES_TYPE_LABEL = { FULL: "Full day", AM: "AM", PM: "PM" };
+function resTypeGroupLine(counts) {
+  return BOAT_TYPE_ORDER
+    .filter((t) => counts[t])
+    .map((t) => `${counts[t]} ${t}`)
+    .concat(
+      Object.keys(counts)
+        .filter((t) => !BOAT_TYPE_ORDER.includes(t))
+        .map((t) => `${counts[t]} ${t}`)
+    )
+    .join(", ");
+}
 
 async function loadAvailability() {
   const listEl = document.getElementById("availList");
@@ -487,12 +503,12 @@ async function loadAvailability() {
       const runabout = loc.counts["Runabout"] || 0;
       const fishing = loc.counts["Fishing"] || 0;
       const total = loc.slots.length;
-      const slotLines = loc.slots.map((s) => `
-        <div class="detail">
-          ${s.boatType} — ${RES_TYPE_LABEL[s.resType] || s.resType}
-          (${formatTime(s.startTime)}–${formatTime(s.endTime)}) — ${s.boatName} — $${s.fullFee}
-        </div>
-      `).join("");
+      const resGroups = groupSlotsByResType(loc.slots);
+      const resLines = RES_TYPE_ORDER
+        .concat(Object.keys(resGroups).filter((rt) => !RES_TYPE_ORDER.includes(rt)))
+        .filter((rt) => resGroups[rt])
+        .map((rt) => `<div class="detail">${RES_TYPE_LABEL[rt] || rt}: ${resTypeGroupLine(resGroups[rt])}</div>`)
+        .join("");
       return `
       <div class="watch-row">
         <div class="watch-meta">
@@ -506,7 +522,7 @@ async function loadAvailability() {
           ${total ? `
           <details>
             <summary>AM / PM breakdown</summary>
-            ${slotLines}
+            ${resLines}
           </details>` : ""}
         </div>
         <a class="btn-ghost" href="${data.bookingUrl}" target="_blank" rel="noopener">Book</a>
