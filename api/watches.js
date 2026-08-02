@@ -65,6 +65,10 @@ function boatTypesOf(w) {
   return w.boat_types || (w.boat_type ? [w.boat_type] : []);
 }
 
+function timePrefsOf(w) {
+  return w.time_prefs || [];
+}
+
 async function triggerCheck(newWatch) {
   await fetch(DISPATCH_API, {
     method: "POST",
@@ -114,7 +118,9 @@ module.exports = async (req, res) => {
             const tLakes = JSON.stringify(lakesOf(watch));
             const wTypes = JSON.stringify(boatTypesOf(w));
             const tTypes = JSON.stringify(boatTypesOf(watch));
-            return !(wLakes === tLakes && w.date === watch.date && wTypes === tTypes);
+            const wTimePrefs = JSON.stringify(timePrefsOf(w));
+            const tTimePrefs = JSON.stringify(timePrefsOf(watch));
+            return !(wLakes === tLakes && w.date === watch.date && wTypes === tTypes && wTimePrefs === tTimePrefs);
           }),
           `Remove watch: ${watch.date}`
         );

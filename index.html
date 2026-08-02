@@ -207,6 +207,9 @@
       <label class="field-label">Boat type (pick one or more, or leave blank for any)</label>
       <div class="lake-grid" id="boatTypeGrid"></div>
 
+      <label class="field-label">Time of day (pick one or more, or leave blank for any)</label>
+      <div class="lake-grid" id="timePrefGrid"></div>
+
       <button class="btn-primary" onclick="addWatch()">Add watch</button>
       <div id="status"></div>
     </div>
@@ -296,6 +299,35 @@ function clearBoatTypes() {
   });
 }
 
+const TIME_PREFS = ["AM", "PM"];
+
+function initTimePrefs() {
+  const grid = document.getElementById("timePrefGrid");
+  grid.innerHTML = TIME_PREFS.map((t, i) => `
+    <label class="lake-chip" id="timePrefChip-${i}">
+      <input type="checkbox" value="${t}" onchange="onTimePrefToggle(${i})">
+      ${t}
+    </label>
+  `).join("");
+}
+
+function onTimePrefToggle(i) {
+  const chip = document.getElementById(`timePrefChip-${i}`);
+  const cb = chip.querySelector("input");
+  chip.classList.toggle("selected", cb.checked);
+}
+
+function getSelectedTimePrefs() {
+  return Array.from(document.querySelectorAll("#timePrefGrid input[type=checkbox]:checked")).map(cb => cb.value);
+}
+
+function clearTimePrefs() {
+  document.querySelectorAll("#timePrefGrid input[type=checkbox]").forEach(cb => {
+    cb.checked = false;
+    cb.dispatchEvent(new Event("change"));
+  });
+}
+
 function setStatus(msg, isErr) {
   const el = document.getElementById("status");
   el.textContent = msg;
@@ -344,6 +376,7 @@ async function loadWatches() {
           <div class="lakes">${lakes.join(", ")}</div>
           <div class="detail">${w.date}</div>
           ${(w.boat_types || (w.boat_type ? [w.boat_type] : [])).map(t => `<span class="pill">${t}</span>`).join("")}
+          ${(w.time_prefs || []).map(t => `<span class="pill">${t}</span>`).join("")}
         </div>
         <button class="btn-danger" onclick="removeWatch(${i})">Remove</button>
       </div>
@@ -358,16 +391,18 @@ async function addWatch() {
   const lakes = getSelectedLakes();
   const date = document.getElementById("dateInput").value;
   const boat_types = getSelectedBoatTypes();
+  const time_prefs = getSelectedTimePrefs();
   if (!lakes.length) { setStatus("Pick at least one lake.", true); return; }
   if (!date) { setStatus("Pick a date.", true); return; }
 
   setStatus("Saving...", false);
   setButtonsDisabled(true);
   try {
-    await apiPost("/api/watches", { action: "add", watch: { lakes, date, boat_types } });
+    await apiPost("/api/watches", { action: "add", watch: { lakes, date, boat_types, time_prefs } });
     setStatus("Watch added. Next check runs within 5 minutes.", false);
     document.getElementById("dateInput").value = "";
     clearBoatTypes();
+    clearTimePrefs();
     selectAllLakes(false);
     await loadWatches();
   } catch (e) {
@@ -509,6 +544,9 @@ async function loadAvailability() {
         .filter((rt) => resGroups[rt])
         .map((rt) => `<div class="detail">${RES_TYPE_LABEL[rt] || rt}: ${resTypeGroupLine(resGroups[rt])}</div>`)
         .join("");
+      const allDayLine = loc.allDayCounts && Object.keys(loc.allDayCounts).length
+        ? `<div class="detail">Could book all day (separate AM + PM): ${resTypeGroupLine(loc.allDayCounts)}</div>`
+        : "";
       return `
       <div class="watch-row">
         <div class="watch-meta">
@@ -523,6 +561,7 @@ async function loadAvailability() {
           <details>
             <summary>AM / PM breakdown</summary>
             ${resLines}
+            ${allDayLine}
           </details>` : ""}
         </div>
         <a class="btn-ghost" href="${data.bookingUrl}" target="_blank" rel="noopener">Book</a>
@@ -535,6 +574,7 @@ async function loadAvailability() {
 
 initLakes();
 initBoatTypes();
+initTimePrefs();
 loadWatches();
 loadPhone();
 </script>

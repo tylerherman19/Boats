@@ -77,13 +77,24 @@ module.exports = async (req, res) => {
         try {
           const slots = await getAvailable(locId, dateStr);
           const counts = {};
+          const boatResTypes = {};
           for (const s of slots) {
             const t = s.boatType || "Other";
             counts[t] = (counts[t] || 0) + 1;
+            const entry = boatResTypes[s.boatID] || { boatType: t, types: new Set() };
+            entry.types.add(s.resType);
+            boatResTypes[s.boatID] = entry;
+          }
+          const allDayCounts = {};
+          for (const entry of Object.values(boatResTypes)) {
+            if (entry.types.has("AM") && entry.types.has("PM")) {
+              allDayCounts[entry.boatType] = (allDayCounts[entry.boatType] || 0) + 1;
+            }
           }
           return {
             lake,
             counts,
+            allDayCounts,
             slots: slots.map((s) => ({
               boatName: s.boatName,
               boatType: s.boatType,

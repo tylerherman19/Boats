@@ -72,6 +72,10 @@ def boat_types_of(w):
     return w.get("boat_types") or ([w["boat_type"]] if w.get("boat_type") else [])
 
 
+def time_prefs_of(w):
+    return w.get("time_prefs") or []
+
+
 def send_confirmation(sms_to):
     raw = os.environ.get("NEW_WATCH", "")
     if not raw:
@@ -83,12 +87,14 @@ def send_confirmation(sms_to):
 
     lakes = lakes_of(watch)
     boat_types = boat_types_of(watch)
+    time_prefs = time_prefs_of(watch)
     boat_type_str = ", ".join(boat_types) if boat_types else "any boat"
+    time_str = f" ({'/'.join(time_prefs)})" if time_prefs else ""
     lake_str = ", ".join(lakes)
     notify(
         sms_to,
         "Boat Watch set",
-        f"Your watch for {boat_type_str} is set for {lake_str} on {watch.get('date')}. "
+        f"Your watch for {boat_type_str}{time_str} is set for {lake_str} on {watch.get('date')}. "
         f"I'll text you if anything opens up.",
     )
 
@@ -118,6 +124,7 @@ def main():
         lakes = lakes_of(w)
         date_str = w["date"].replace("-", "")
         boat_types = [b.lower() for b in boat_types_of(w)]
+        time_prefs = [t.upper() for t in time_prefs_of(w)]
 
         for lake in lakes:
             key = f"{lake}|{w['date']}"
@@ -130,6 +137,11 @@ def main():
             slots = get_available(loc_id, date_str)
             if boat_types:
                 slots = [s for s in slots if s.get("boatType", "").lower() in boat_types]
+            if time_prefs:
+                slots = [
+                    s for s in slots
+                    if s.get("resType", "").upper() == "FULL" or s.get("resType", "").upper() in time_prefs
+                ]
 
             seen = set(state.get(key, []))
             new_slots = []
