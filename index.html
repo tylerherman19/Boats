@@ -448,6 +448,16 @@ function formatDateLabel(dateStr) {
   return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 }
 
+function formatTime(t) {
+  if (!t) return "";
+  const [h, m] = t.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+const RES_TYPE_LABEL = { FULL: "Full day", AM: "AM", PM: "PM" };
+
 async function loadAvailability() {
   const listEl = document.getElementById("availList");
   const dateEl = document.getElementById("availDate");
@@ -477,6 +487,12 @@ async function loadAvailability() {
       const runabout = loc.counts["Runabout"] || 0;
       const fishing = loc.counts["Fishing"] || 0;
       const total = loc.slots.length;
+      const slotLines = loc.slots.map((s) => `
+        <div class="detail">
+          ${s.boatType} — ${RES_TYPE_LABEL[s.resType] || s.resType}
+          (${formatTime(s.startTime)}–${formatTime(s.endTime)}) — ${s.boatName} — $${s.fullFee}
+        </div>
+      `).join("");
       return `
       <div class="watch-row">
         <div class="watch-meta">
@@ -487,6 +503,11 @@ async function loadAvailability() {
             <span class="pill">Runabout: ${runabout}</span>
             ${fishing ? `<span class="pill">Fishing: ${fishing}</span>` : ""}
           </div>
+          ${total ? `
+          <details>
+            <summary>AM / PM breakdown</summary>
+            ${slotLines}
+          </details>` : ""}
         </div>
         <a class="btn-ghost" href="${data.bookingUrl}" target="_blank" rel="noopener">Book</a>
       </div>`;
