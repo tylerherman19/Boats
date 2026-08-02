@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "lakes": [
+      "Minnetonka - Browns Bay",
+      "Minnetonka - Smiths Bay"
+    ],
+    "date": "2026-08-02",
+    "boat_types": [
+      "Pontoon",
+      "Runabout"
+    ]
+  }
+]
