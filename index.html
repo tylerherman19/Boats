@@ -3,1143 +3,576 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Boatwatch — Never miss the water</title>
-<meta name="description" content="Pick your lakes and a date. Get a text the moment a boat opens up — a cancellation, or a spot that's already free.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Boat Watch</title>
 <style>
   :root {
-    --ink: #050b16;
-    --ink-2: #0a1322;
-    --card: rgba(255, 255, 255, 0.032);
-    --card-solid: #0c1626;
-    --line: rgba(255, 255, 255, 0.09);
-    --line-soft: rgba(255, 255, 255, 0.055);
-    --mist: #edf2f9;
-    --dim: #96a3ba;
-    --faint: #5f6e88;
-    --gold: #f2b23e;
-    --gold-deep: #d18f1d;
-    --gold-glow: rgba(242, 178, 62, 0.16);
-    --aqua: #62c9d8;
-    --open: #3ddc97;
-    --open-glow: rgba(61, 220, 151, 0.14);
-    --danger: #ff8a8a;
-    --radius: 22px;
-    --font-display: "Fraunces", Georgia, serif;
-    --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --nav-h: 72px;
+    color-scheme: light dark;
+    --bg: #eef2f6;
+    --card: #ffffff;
+    --text: #14181f;
+    --muted: #66707d;
+    --border: #dde3ea;
+    --accent: #1462f2;
+    --accent-hover: #0f52d1;
+    --accent-text: #ffffff;
+    --danger: #d93025;
+    --chip-bg: #eef2f6;
+    --chip-border: #d7dee6;
+    --chip-selected-bg: #e8f0fe;
+    --chip-selected-border: #1462f2;
+    --shadow: 0 1px 2px rgba(20,24,31,0.04), 0 8px 24px rgba(20,24,31,0.06);
   }
-
-  *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d0f13;
+      --card: #191c22;
+      --text: #eef1f5;
+      --muted: #93a0af;
+      --border: #2a2f38;
+      --accent: #4b8bff;
+      --accent-hover: #6b9eff;
+      --accent-text: #06101f;
+      --danger: #ff6b6b;
+      --chip-bg: #21252d;
+      --chip-border: #2f3540;
+      --chip-selected-bg: #16233d;
+      --chip-selected-border: #4b8bff;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: var(--ink);
-    color: var(--mist);
-    font-family: var(--font-ui);
-    font-size: 16px;
-    line-height: 1.55;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 28px 16px 60px;
   }
-  ::selection { background: rgba(242, 178, 62, 0.35); }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  header { margin-bottom: 22px; }
+  header .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  p.sub { color: var(--muted); margin: 0; font-size: 0.95rem; line-height: 1.4; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 0.95rem;
+    margin: 0 0 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  label.field-label {
+    display: block; font-size: 0.8rem; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em;
+    margin: 18px 0 8px;
+  }
+  label.field-label:first-of-type { margin-top: 0; }
+  select, input[type="date"], input[type="password"] {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-  /* ambient background */
-  .ambient {
-    position: fixed; inset: 0; z-index: -2; pointer-events: none;
-    background:
-      radial-gradient(1100px 550px at 85% -8%, rgba(98, 201, 216, 0.09), transparent 60%),
-      radial-gradient(900px 600px at 8% 12%, rgba(242, 178, 62, 0.07), transparent 60%),
-      radial-gradient(1400px 900px at 50% 110%, rgba(38, 92, 140, 0.12), transparent 65%),
-      var(--ink);
+  .lake-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
   }
-  .grain {
-    position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0.05;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  .lake-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--chip-border);
+    background: var(--chip-bg);
+    cursor: pointer;
+    font-size: 0.87rem;
+    user-select: none;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .lake-chip input { margin: 0; accent-color: var(--accent); flex-shrink: 0; }
+  .lake-chip.selected { background: var(--chip-selected-bg); border-color: var(--chip-selected-border); }
+  .lake-quick { display: flex; gap: 8px; margin-top: 10px; }
+
+  button {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.12s, opacity 0.12s;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .btn-primary { background: var(--accent); color: var(--accent-text); width: 100%; margin-top: 20px; padding: 13px; font-size: 1rem; }
+  .btn-primary:not(:disabled):hover { background: var(--accent-hover); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; font-size: 0.82rem; font-weight: 500; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 0.82rem; font-weight: 500; padding: 6px 12px; }
+
+  .watch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .watch-row:last-child { border-bottom: none; }
+  .watch-meta { font-size: 0.9rem; }
+  .watch-meta .lakes { font-weight: 600; margin-bottom: 2px; }
+  .watch-meta .detail { color: var(--muted); font-size: 0.82rem; }
+  .pill {
+    display: inline-block; background: var(--chip-bg); border: 1px solid var(--chip-border);
+    border-radius: 999px; padding: 1px 8px; font-size: 0.75rem; margin-top: 4px; color: var(--muted);
   }
 
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
-  section { padding: 110px 0; position: relative; }
+  #status { font-size: 0.85rem; margin-top: 12px; min-height: 1.2em; }
+  #status.ok { color: #1a9e5c; }
+  #status.err { color: var(--danger); }
 
-  /* ---------- nav ---------- */
-  nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-    height: var(--nav-h);
-    backdrop-filter: blur(18px) saturate(1.3);
-    -webkit-backdrop-filter: blur(18px) saturate(1.3);
-    background: rgba(5, 11, 22, 0.55);
-    border-bottom: 1px solid var(--line-soft);
-    transition: background 0.4s var(--ease);
-  }
-  .nav-inner {
-    max-width: 1180px; margin: 0 auto; padding: 0 28px;
-    height: var(--nav-h); display: flex; align-items: center; justify-content: space-between;
-  }
-  .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--mist); }
-  .brand-mark {
-    width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
-    background: linear-gradient(135deg, var(--gold), var(--gold-deep));
-    box-shadow: 0 4px 18px rgba(242, 178, 62, 0.35);
-    font-size: 17px;
-  }
-  .brand-name { font-family: var(--font-display); font-weight: 600; font-size: 1.22rem; letter-spacing: -0.01em; }
-  .brand-name em { font-style: italic; color: var(--gold); }
-  .nav-links { display: flex; gap: 6px; align-items: center; }
-  .nav-links a {
-    color: var(--dim); text-decoration: none; font-size: 0.92rem; font-weight: 500;
-    padding: 9px 15px; border-radius: 999px; transition: color 0.25s, background 0.25s;
-  }
-  .nav-links a:hover { color: var(--mist); background: rgba(255, 255, 255, 0.06); }
-  .nav-cta {
-    background: var(--gold); color: #1a1206 !important; font-weight: 600;
-    box-shadow: 0 4px 20px rgba(242, 178, 62, 0.3);
-  }
-  .nav-cta:hover { background: #ffc75e !important; box-shadow: 0 6px 26px rgba(242, 178, 62, 0.45); }
-  @media (max-width: 720px) { .nav-links a:not(.nav-cta) { display: none; } }
+  details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; font-weight: 500; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "▸ "; }
+  details[open] summary::before { content: "▾ "; }
+  details[open] summary { margin-bottom: 12px; }
+  .token-card { padding: 16px 20px; }
 
-  /* ---------- hero ---------- */
-  .hero {
-    min-height: 100svh; display: flex; align-items: center;
-    padding: calc(var(--nav-h) + 40px) 0 120px; position: relative; overflow: hidden;
-  }
-  #waves { position: absolute; inset: auto 0 0 0; height: 46%; width: 100%; z-index: -1; opacity: 0.9; }
-  .hero-fade { position: absolute; inset: auto 0 0 0; height: 46%; z-index: 0; pointer-events: none;
-    background: linear-gradient(to top, var(--ink) 4%, transparent 70%); }
-  .eyebrow {
-    display: inline-flex; align-items: center; gap: 9px;
-    font-size: 0.76rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--gold); margin-bottom: 26px;
-  }
-  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--open); box-shadow: 0 0 12px var(--open); animation: pulse 2.4s ease-in-out infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.8); } }
-  h1.hero-title {
-    font-family: var(--font-display); font-weight: 400;
-    font-size: clamp(3.1rem, 8.4vw, 6.9rem);
-    line-height: 1.0; letter-spacing: -0.025em; margin: 0 0 26px;
-  }
-  h1.hero-title em { font-style: italic; font-weight: 300; color: var(--gold); }
-  .hero-sub { font-size: 1.16rem; color: var(--dim); max-width: 560px; margin: 0 0 40px; line-height: 1.65; }
-  .hero-sub strong { color: var(--mist); font-weight: 600; }
-  .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 64px; }
+  .empty { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
+  .footnote { color: var(--muted); font-size: 0.78rem; margin-top: 10px; line-height: 1.4; }
 
-  .btn {
-    appearance: none; border: none; cursor: pointer; font-family: var(--font-ui);
-    font-size: 1rem; font-weight: 600; padding: 16px 32px; border-radius: 999px;
-    display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
-    transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), background 0.25s;
-    will-change: transform;
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 9px 16px; border-radius: 10px; font-size: 0.87rem; font-weight: 600;
   }
-  .btn:active { transform: scale(0.97); }
-  .btn-gold { background: linear-gradient(135deg, #ffc75e, var(--gold) 55%, var(--gold-deep)); color: #1c1305; box-shadow: 0 8px 32px rgba(242, 178, 62, 0.35); }
-  .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 14px 44px rgba(242, 178, 62, 0.5); }
-  .btn-ghost { background: rgba(255, 255, 255, 0.05); color: var(--mist); border: 1px solid var(--line); backdrop-filter: blur(8px); }
-  .btn-ghost:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.18); }
-  .btn-sm { padding: 10px 20px; font-size: 0.88rem; }
-  .btn[disabled] { opacity: 0.45; cursor: default; transform: none !important; }
-
-  .hero-stats { display: flex; gap: 44px; flex-wrap: wrap; }
-  .stat .num {
-    font-family: var(--font-display); font-size: 2.6rem; font-weight: 500; letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums; line-height: 1;
-  }
-  .stat .num.live { color: var(--open); text-shadow: 0 0 28px rgba(61, 220, 151, 0.4); }
-  .stat .lbl { font-size: 0.82rem; color: var(--faint); margin-top: 7px; letter-spacing: 0.04em; }
-  .stat .lbl b { color: var(--dim); font-weight: 600; }
-
-  .scroll-hint {
-    position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
-    color: var(--faint); font-size: 0.75rem; letter-spacing: 0.22em; text-transform: uppercase;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-  }
-  .scroll-hint::after { content: ""; width: 1px; height: 44px; background: linear-gradient(var(--faint), transparent); animation: drip 2.2s var(--ease) infinite; }
-  @keyframes drip { 0% { transform: scaleY(0); transform-origin: top; } 45% { transform: scaleY(1); transform-origin: top; } 55% { transform: scaleY(1); transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
-
-  /* ---------- section headers ---------- */
-  .sec-head { max-width: 720px; margin-bottom: 60px; }
-  .sec-kicker { font-size: 0.76rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aqua); margin-bottom: 18px; display: block; }
-  .sec-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(2rem, 4.6vw, 3.4rem); letter-spacing: -0.02em; line-height: 1.08; margin: 0 0 18px; }
-  .sec-title em { font-style: italic; color: var(--gold); font-weight: 300; }
-  .sec-sub { color: var(--dim); font-size: 1.06rem; margin: 0; max-width: 600px; }
-
-  /* ---------- how it works ---------- */
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
-  .step-card {
-    background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--radius);
-    padding: 34px 30px; position: relative; overflow: hidden;
-    transition: transform 0.35s var(--ease), border-color 0.35s, background 0.35s;
-  }
-  .step-card:hover { transform: translateY(-6px); border-color: var(--line); background: rgba(255, 255, 255, 0.05); }
-  .step-num {
-    font-family: var(--font-display); font-style: italic; font-size: 3.4rem; line-height: 1;
-    color: transparent; -webkit-text-stroke: 1px rgba(242, 178, 62, 0.55); margin-bottom: 22px; display: block;
-  }
-  .step-card h3 { font-size: 1.18rem; margin: 0 0 10px; letter-spacing: -0.01em; }
-  .step-card p { color: var(--dim); margin: 0; font-size: 0.96rem; }
-
-  /* ---------- wizard ---------- */
-  .wizard-shell {
-    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
-    border: 1px solid var(--line); border-radius: 28px; overflow: hidden;
-    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
-  }
-  .wizard-progress { display: flex; gap: 8px; padding: 26px 34px 0; }
-  .wizard-progress .seg { height: 4px; flex: 1; border-radius: 99px; background: rgba(255,255,255,0.1); overflow: hidden; }
-  .wizard-progress .seg i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), #ffc75e); border-radius: 99px; transition: width 0.6s var(--ease); }
-  .wizard-progress .seg.done i { width: 100%; }
-  .wizard-body { padding: 40px 34px 34px; min-height: 560px; position: relative; }
-  @media (max-width: 640px) { .wizard-body { padding: 30px 20px 26px; min-height: 600px; } }
-  .wstep { animation: stepIn 0.55s var(--ease); }
-  @keyframes stepIn { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
-  .wstep.out-left { animation: stepOutL 0.3s var(--ease) forwards; }
-  @keyframes stepOutL { to { opacity: 0; transform: translateX(-34px); } }
-  .wstep-title { font-family: var(--font-display); font-size: clamp(1.7rem, 3.4vw, 2.5rem); font-weight: 400; letter-spacing: -0.02em; margin: 0 0 8px; }
-  .wstep-title em { font-style: italic; color: var(--gold); font-weight: 300; }
-  .wstep-sub { color: var(--dim); margin: 0 0 32px; font-size: 1.02rem; }
-
-  .lake-group-label {
-    font-size: 0.74rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--faint); margin: 26px 0 12px; display: flex; align-items: center; gap: 12px;
-  }
-  .lake-group-label::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
-  .lake-group-label:first-of-type { margin-top: 0; }
-  .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-  .pick-card {
-    position: relative; border: 1px solid var(--line-soft); border-radius: 15px;
-    background: rgba(255, 255, 255, 0.025); padding: 15px 16px; cursor: pointer;
-    font-size: 0.94rem; font-weight: 500; user-select: none;
-    display: flex; align-items: center; gap: 11px;
-    transition: transform 0.22s var(--ease), border-color 0.22s, background 0.22s, box-shadow 0.22s;
-  }
-  .pick-card:hover { transform: translateY(-2px); border-color: var(--line); background: rgba(255, 255, 255, 0.05); }
-  .pick-card .check {
-    width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--faint); flex-shrink: 0;
-    display: grid; place-items: center; font-size: 12px; color: transparent;
-    transition: all 0.25s var(--ease);
-  }
-  .pick-card.selected { border-color: rgba(242, 178, 62, 0.65); background: var(--gold-glow); box-shadow: 0 6px 24px rgba(242, 178, 62, 0.12); }
-  .pick-card.selected .check { background: var(--gold); border-color: var(--gold); color: #1c1305; transform: scale(1.08); }
-  .pick-card .sub { display: block; font-size: 0.76rem; color: var(--faint); font-weight: 400; margin-top: 2px; }
-  .pick-card .boat-icon { font-size: 1.35rem; }
-
-  .wizard-actions { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 26px 34px 30px; border-top: 1px solid var(--line-soft); }
-  @media (max-width: 640px) { .wizard-actions { padding: 22px 20px 24px; } }
-  .wback { background: none; border: none; color: var(--dim); font: 600 0.95rem var(--font-ui); cursor: pointer; padding: 12px 6px; transition: color 0.2s; }
-  .wback:hover { color: var(--mist); }
-  .wback[hidden] { visibility: hidden; }
-  .wstep-count { font-size: 0.85rem; color: var(--faint); font-variant-numeric: tabular-nums; }
-
-  .date-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 26px; }
-  .date-chip {
-    border: 1px solid var(--line-soft); background: rgba(255,255,255,0.025); color: var(--dim);
-    border-radius: 14px; padding: 12px 18px; font: 600 0.9rem var(--font-ui); cursor: pointer;
-    transition: all 0.22s var(--ease); text-align: center; min-width: 108px;
-  }
-  .date-chip small { display: block; font-weight: 400; font-size: 0.74rem; color: var(--faint); margin-top: 2px; }
-  .date-chip:hover { border-color: var(--line); transform: translateY(-2px); }
-  .date-chip.selected { border-color: rgba(242,178,62,0.65); background: var(--gold-glow); color: var(--mist); }
-  .date-chip.selected small { color: var(--gold); }
-  input[type="date"].fancy {
-    background: rgba(255,255,255,0.04); border: 1px solid var(--line); color: var(--mist);
-    border-radius: 14px; padding: 13px 16px; font: 500 1rem var(--font-ui); color-scheme: dark;
-    transition: border-color 0.2s;
-  }
-  input[type="date"].fancy:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(242,178,62,0.18); }
-
-  .seg-control { display: inline-flex; background: rgba(255,255,255,0.045); border: 1px solid var(--line-soft); border-radius: 999px; padding: 5px; gap: 4px; }
-  .seg-control button {
-    border: none; background: transparent; color: var(--dim); font: 600 0.92rem var(--font-ui);
-    padding: 11px 26px; border-radius: 999px; cursor: pointer; transition: all 0.25s var(--ease);
-  }
-  .seg-control button.selected { background: var(--gold); color: #1c1305; box-shadow: 0 4px 16px rgba(242,178,62,0.35); }
-
-  .phone-row { display: flex; gap: 12px; max-width: 460px; }
-  .phone-row input {
-    flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--line); color: var(--mist);
-    border-radius: 14px; padding: 15px 18px; font: 500 1.05rem var(--font-ui); letter-spacing: 0.04em;
-    transition: border-color 0.2s;
-  }
-  .phone-row input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(242,178,62,0.18); }
-  .phone-row input::placeholder { color: var(--faint); }
-  .watch-summary {
-    background: rgba(242, 178, 62, 0.06); border: 1px solid rgba(242, 178, 62, 0.25);
-    border-radius: 18px; padding: 24px 26px; margin-bottom: 28px;
-  }
-  .watch-summary .row { display: flex; gap: 12px; margin-bottom: 10px; font-size: 0.96rem; }
-  .watch-summary .row:last-child { margin-bottom: 0; }
-  .watch-summary .k { color: var(--faint); width: 74px; flex-shrink: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; padding-top: 3px; }
-  .watch-summary .v { color: var(--mist); font-weight: 500; }
-  .fineprint { color: var(--faint); font-size: 0.84rem; margin-top: 18px; max-width: 520px; }
-
-  .success-pane { text-align: center; padding: 40px 10px 20px; }
-  .success-ring {
-    width: 92px; height: 92px; margin: 0 auto 28px; border-radius: 50%;
-    background: var(--open-glow); border: 1px solid rgba(61, 220, 151, 0.4);
-    display: grid; place-items: center; font-size: 2.4rem; color: var(--open);
-    animation: ringPop 0.7s var(--ease);
-    box-shadow: 0 0 60px rgba(61, 220, 151, 0.25);
-  }
-  @keyframes ringPop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
-
-  /* ---------- watches dashboard ---------- */
-  .watch-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
-  .watch-card {
-    background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--radius);
-    padding: 26px; position: relative; overflow: hidden;
-    transition: transform 0.3s var(--ease), border-color 0.3s;
-  }
-  .watch-card:hover { transform: translateY(-4px); border-color: var(--line); }
-  .watch-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, var(--gold), var(--aqua)); opacity: 0.85; }
-  .watch-card .wc-date { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: -0.01em; margin-bottom: 4px; }
-  .watch-card .wc-date small { font-family: var(--font-ui); font-size: 0.82rem; color: var(--faint); display: block; margin-top: 2px; }
-  .watch-card .wc-lakes { color: var(--dim); font-size: 0.92rem; margin: 12px 0 14px; line-height: 1.6; }
-  .tagrow { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-  .tag {
-    font-size: 0.76rem; font-weight: 600; letter-spacing: 0.03em; padding: 5px 12px; border-radius: 999px;
-    background: rgba(255,255,255,0.06); border: 1px solid var(--line-soft); color: var(--dim);
-  }
-  .tag.gold { background: var(--gold-glow); border-color: rgba(242,178,62,0.35); color: var(--gold); }
-  .watch-card .remove {
-    background: none; border: 1px solid rgba(255,138,138,0.3); color: var(--danger);
-    font: 600 0.84rem var(--font-ui); padding: 9px 18px; border-radius: 999px; cursor: pointer;
-    transition: all 0.22s;
-  }
-  .watch-card .remove:hover { background: rgba(255,138,138,0.1); border-color: var(--danger); }
-  .live-dot { display: inline-flex; align-items: center; gap: 7px; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--open); }
-  .live-dot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--open); box-shadow: 0 0 10px var(--open); animation: pulse 2.4s ease-in-out infinite; }
-
-  .empty-state {
-    text-align: center; padding: 70px 30px; border: 1px dashed var(--line); border-radius: var(--radius);
-    background: rgba(255,255,255,0.015);
-  }
-  .empty-state .big { font-size: 3rem; margin-bottom: 18px; display: block; }
-  .empty-state h3 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; margin: 0 0 10px; }
-  .empty-state p { color: var(--dim); margin: 0 0 26px; }
-
-  /* ---------- availability ---------- */
-  .avail-toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 34px; }
-  .avail-updated { font-size: 0.85rem; color: var(--faint); }
-  .avail-updated b { color: var(--dim); font-weight: 600; }
-  .refresh-btn {
-    display: inline-flex; align-items: center; gap: 9px; background: rgba(255,255,255,0.05);
-    border: 1px solid var(--line); color: var(--mist); font: 600 0.9rem var(--font-ui);
-    padding: 12px 22px; border-radius: 999px; cursor: pointer; transition: all 0.25s var(--ease);
-  }
-  .refresh-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
-  .refresh-btn .spin { display: inline-block; transition: transform 0.6s var(--ease); font-size: 1rem; }
-  .refresh-btn.loading .spin { animation: rot 0.9s linear infinite; }
-  @keyframes rot { to { transform: rotate(360deg); } }
-
-  .lake-grid-avail { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
-  .lake-card {
-    background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--radius);
-    padding: 26px; transition: transform 0.3s var(--ease), border-color 0.3s, box-shadow 0.3s;
-    position: relative; overflow: hidden;
-  }
-  .lake-card:hover { transform: translateY(-4px); }
-  .lake-card.has-open { border-color: rgba(61, 220, 151, 0.35); box-shadow: 0 12px 44px rgba(61, 220, 151, 0.08); }
-  .lake-card.has-open:hover { box-shadow: 0 18px 60px rgba(61, 220, 151, 0.14); }
-  .lake-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
-  .lake-name { font-weight: 600; font-size: 1.08rem; letter-spacing: -0.01em; }
-  .lake-region { font-size: 0.78rem; color: var(--faint); margin-top: 3px; }
-  .open-badge {
-    font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.02em;
-    padding: 7px 14px; border-radius: 999px; white-space: nowrap;
-    display: inline-flex; align-items: center; gap: 8px;
-  }
-  .open-badge .bdot { width: 8px; height: 8px; border-radius: 50%; }
-  .open-badge.yes { background: var(--open-glow); color: var(--open); border: 1px solid rgba(61,220,151,0.4); }
-  .open-badge.yes .bdot { background: var(--open); box-shadow: 0 0 10px var(--open); animation: pulse 2.4s ease-in-out infinite; }
-  .open-badge.no { background: rgba(255,255,255,0.04); color: var(--faint); border: 1px solid var(--line-soft); }
-  .open-badge.no .bdot { background: var(--faint); }
-  .open-badge.err { background: rgba(255,138,138,0.08); color: var(--danger); border: 1px solid rgba(255,138,138,0.3); }
-  .open-badge.err .bdot { background: var(--danger); }
-
-  .boat-bars { margin: 18px 0 6px; display: flex; flex-direction: column; gap: 10px; }
-  .boat-bar-row { display: flex; align-items: center; gap: 12px; font-size: 0.86rem; }
-  .boat-bar-row .blabel { width: 74px; color: var(--dim); flex-shrink: 0; }
-  .boat-bar-row .bcount { width: 30px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mist); }
-  .bar-track { flex: 1; height: 7px; border-radius: 99px; background: rgba(255,255,255,0.07); overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--aqua), var(--open)); width: 0; transition: width 1s var(--ease); }
-
-  .slot-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
-  .slot-chip { font-size: 0.78rem; font-weight: 600; padding: 6px 13px; border-radius: 999px; background: rgba(98,201,216,0.1); border: 1px solid rgba(98,201,216,0.3); color: var(--aqua); font-variant-numeric: tabular-nums; }
-  .slot-list { margin: 14px 0 0; border-top: 1px solid var(--line-soft); padding-top: 6px; max-height: 190px; overflow-y: auto; }
-  .slot-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 2px; font-size: 0.87rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
-  .slot-row:last-child { border-bottom: none; }
-  .slot-row .sname { color: var(--mist); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .slot-row .stime { color: var(--dim); font-variant-numeric: tabular-nums; flex-shrink: 0; }
-  .lake-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; }
-  .book-link {
-    font: 600 0.88rem var(--font-ui); color: var(--gold); text-decoration: none;
-    display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 999px;
-    border: 1px solid rgba(242,178,62,0.4); background: var(--gold-glow);
-    transition: all 0.25s var(--ease);
-  }
-  .book-link:hover { background: var(--gold); color: #1c1305; transform: translateY(-1px); box-shadow: 0 8px 26px rgba(242,178,62,0.35); }
-  .toggle-slots { background: none; border: none; color: var(--faint); font: 500 0.83rem var(--font-ui); cursor: pointer; padding: 6px 0; transition: color 0.2s; }
-  .toggle-slots:hover { color: var(--aqua); }
-
-  .skeleton { border-radius: var(--radius); border: 1px solid var(--line-soft); padding: 26px; background: var(--card); min-height: 220px; }
-  .sk { border-radius: 10px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
-  @keyframes shimmer { to { background-position: -200% 0; } }
-
-  /* ---------- footer ---------- */
-  footer { border-top: 1px solid var(--line-soft); padding: 60px 0 50px; margin-top: 40px; }
-  .foot-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
-  .foot-inner p { color: var(--faint); font-size: 0.86rem; margin: 0; }
-  .foot-inner .brand-name { font-size: 1.05rem; }
-
-  /* ---------- toast ---------- */
-  #toast {
-    position: fixed; bottom: 28px; left: 50%; transform: translate(-50%, 80px); z-index: 100;
-    background: #101b2e; border: 1px solid var(--line); color: var(--mist);
-    padding: 15px 24px; border-radius: 16px; font-size: 0.93rem; font-weight: 500;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5); opacity: 0;
-    transition: transform 0.45s var(--ease), opacity 0.45s var(--ease);
-    max-width: min(92vw, 480px); text-align: center; pointer-events: none;
-  }
-  #toast.show { transform: translate(-50%, 0); opacity: 1; }
-  #toast.ok { border-color: rgba(61,220,151,0.45); }
-  #toast.err { border-color: rgba(255,138,138,0.45); }
-
-  /* ---------- reveal on scroll ---------- */
-  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.85s var(--ease), transform 0.85s var(--ease); }
-  .reveal.in { opacity: 1; transform: none; }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-    html { scroll-behavior: auto; }
-    .reveal { opacity: 1; transform: none; }
-  }
+  .tab-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  a.btn-ghost { display: inline-block; text-decoration: none; }
+  .avail-counts { margin-top: 4px; }
+  .avail-counts .pill { margin-right: 4px; }
 </style>
 </head>
 <body>
-<div class="ambient"></div>
-<div class="grain"></div>
+<div class="wrap">
+  <header>
+    <div class="badge">🚤 Boat Watch</div>
+    <h1>Never miss a reservation</h1>
+    <p class="sub">Pick lakes + a date. Get a text the moment a boat opens up — a cancellation, or a spot that's already free.</p>
+  </header>
 
-<nav>
-  <div class="nav-inner">
-    <a class="brand" href="#top">
-      <span class="brand-mark">🚤</span>
-      <span class="brand-name">Boat<em>watch</em></span>
-    </a>
-    <div class="nav-links">
-      <a href="#builder">New watch</a>
-      <a href="#watches">My watches</a>
-      <a href="#availability">Availability</a>
-      <a href="#builder" class="nav-cta">Set a watch</a>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnWatches" onclick="switchTab('watches')">Watches</button>
+    <button class="tab-btn" id="tabBtnAvailability" onclick="switchTab('availability')">Live Availability</button>
+  </div>
+
+  <div id="tabWatches">
+    <div class="card token-card">
+      <details id="phoneDetails">
+        <summary>Text goes to (T-Mobile)</summary>
+        <label class="field-label" for="phoneInput">10-digit phone number</label>
+        <input id="phoneInput" type="text" placeholder="7634432772" inputmode="numeric" maxlength="10">
+        <button class="btn-ghost" style="margin-top:10px;" onclick="savePhone()">Save number</button>
+        <div id="phoneStatus" class="footnote"></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>New watch</h2>
+
+      <label class="field-label">Lakes (pick one or more)</label>
+      <div class="lake-grid" id="lakeGrid"></div>
+      <div class="lake-quick">
+        <button class="btn-ghost" onclick="selectAllLakes(true)">Select all</button>
+        <button class="btn-ghost" onclick="selectAllLakes(false)">Clear</button>
+      </div>
+
+      <label class="field-label" for="dateInput">Date</label>
+      <input id="dateInput" type="date">
+
+      <label class="field-label">Boat type (pick one or more, or leave blank for any)</label>
+      <div class="lake-grid" id="boatTypeGrid"></div>
+
+      <label class="field-label">Time of day (pick one or more, or leave blank for any)</label>
+      <div class="lake-grid" id="timePrefGrid"></div>
+
+      <button class="btn-primary" onclick="addWatch()">Add watch</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Active watches <button class="btn-ghost" onclick="loadWatches()">Refresh</button></h2>
+      <div id="watchList"></div>
+      <div class="footnote">Alerts fire the first time a slot appears for a watch — including right away if one's already open. It won't repeat for the same slot.</div>
     </div>
   </div>
-</nav>
 
-<header class="hero" id="top">
-  <div class="wrap" style="position:relative; z-index:1; width:100%;">
-    <div class="eyebrow reveal"><span class="dot"></span> Your Boat Club · Minnesota · Live</div>
-    <h1 class="hero-title reveal">Never miss<br>the <em>water.</em></h1>
-    <p class="hero-sub reveal">Pick your lakes and a date. The moment a boat opens up — a <strong>cancellation</strong> or a slot that's <strong>already free</strong> — you get the text. No refreshing. No luck required.</p>
-    <div class="hero-ctas reveal">
-      <a href="#builder" class="btn btn-gold">Set a watch <span aria-hidden="true">→</span></a>
-      <a href="#availability" class="btn btn-ghost">See what's open now</a>
-    </div>
-    <div class="hero-stats reveal">
-      <div class="stat">
-        <div class="num live" id="heroOpenCount">–</div>
-        <div class="lbl"><b>boats open today</b> across all lakes</div>
-      </div>
-      <div class="stat">
-        <div class="num">16</div>
-        <div class="lbl"><b>lakes</b> watched around the clock</div>
-      </div>
-      <div class="stat">
-        <div class="num">5<span style="font-size:1.4rem;color:var(--dim)">min</span></div>
-        <div class="lbl"><b>check cadence</b> on every active watch</div>
-      </div>
+  <div id="tabAvailability" style="display:none;">
+    <div class="card">
+      <h2>Live availability <button class="btn-ghost" onclick="loadAvailability()">Refresh</button></h2>
+      <label class="field-label" for="availDateInput">Date</label>
+      <input id="availDateInput" type="date" onchange="loadAvailability()">
+      <div id="availDate" class="footnote"></div>
+      <div id="availList"></div>
+      <div class="footnote">Pulled straight from the reservation API — not from your watches. Use Book to reserve; this page can't book for you.</div>
     </div>
   </div>
-  <canvas id="waves" aria-hidden="true"></canvas>
-  <div class="hero-fade"></div>
-  <div class="scroll-hint">Scroll</div>
-</header>
-
-<section id="how">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="sec-kicker">How it works</span>
-      <h2 class="sec-title">Set it. Forget it. <em>Get the text.</em></h2>
-    </div>
-    <div class="steps">
-      <div class="step-card reveal">
-        <span class="step-num">01</span>
-        <h3>Tell us where &amp; when</h3>
-        <p>Pick from 16 lakes, choose your date, boat type, and time of day. Thirty seconds, tops.</p>
-      </div>
-      <div class="step-card reveal" style="transition-delay:0.1s">
-        <span class="step-num">02</span>
-        <h3>We watch the reservation feed</h3>
-        <p>Every few minutes we check live availability straight from the booking system — including cancellations the moment they post.</p>
-      </div>
-      <div class="step-card reveal" style="transition-delay:0.2s">
-        <span class="step-num">03</span>
-        <h3>Your phone buzzes</h3>
-        <p>The first time a matching slot appears, you get a text. It won't nag you about the same slot twice.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="builder" style="padding-top:40px;">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="sec-kicker">New watch</span>
-      <h2 class="sec-title">Build your <em>watch.</em></h2>
-      <p class="sec-sub">Four quick steps. We'll take it from there.</p>
-    </div>
-    <div class="wizard-shell reveal">
-      <div class="wizard-progress" id="wizProgress">
-        <div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg"><i></i></div>
-      </div>
-      <div class="wizard-body" id="wizBody" aria-live="polite"></div>
-      <div class="wizard-actions">
-        <button class="wback" id="wizBack" onclick="wizGo(wiz.step - 1)">← Back</button>
-        <span class="wstep-count" id="wizCount">Step 1 of 4</span>
-        <button class="btn btn-gold btn-sm" id="wizNext" onclick="wizNext()">Continue →</button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="watches" style="padding-top:40px;">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="sec-kicker">Dashboard</span>
-      <h2 class="sec-title">Your <em>watches.</em></h2>
-      <p class="sec-sub">Everything you're tracking, live. Remove one anytime — it stops checking immediately.</p>
-    </div>
-    <div style="margin-bottom:26px;" class="reveal">
-      <span class="live-dot">Monitoring</span>
-    </div>
-    <div id="watchList" class="watch-cards"></div>
-  </div>
-</section>
-
-<section id="availability" style="padding-top:40px;">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <span class="sec-kicker">Live</span>
-      <h2 class="sec-title">What's open <em>right now.</em></h2>
-      <p class="sec-sub">Pulled straight from the reservation system — not from your watches. Hit <b style="color:var(--gold)">Book</b> to grab it before someone else does.</p>
-    </div>
-    <div class="avail-toolbar reveal">
-      <input type="date" class="fancy" id="availDate" aria-label="Availability date">
-      <button class="refresh-btn" id="refreshBtn" onclick="loadAvailability(true)">
-        <span class="spin" aria-hidden="true">↻</span> Refresh
-      </button>
-      <span class="avail-updated" id="availUpdated"></span>
-    </div>
-    <div id="availList" class="lake-grid-avail"></div>
-  </div>
-</section>
-
-<footer>
-  <div class="wrap foot-inner">
-    <a class="brand" href="#top">
-      <span class="brand-mark">🚤</span>
-      <span class="brand-name">Boat<em>watch</em></span>
-    </a>
-    <p>Watching 16 Minnesota lakes for Your Boat Club members. Availability data comes straight from the reservation feed.</p>
-  </div>
-</footer>
-
-<div id="toast" role="status"></div>
+</div>
 
 <script>
-/* ============================== config ============================== */
 const SITE_SECRET = "gfhlZT8j3Rr94D56xxmprLjqdmw_Ygp3";
 
-const LAKE_GROUPS = [
-  { region: "Twin Cities metro", lakes: [
-    "Minnetonka - Browns Bay", "Minnetonka - Smiths Bay", "St. Croix River",
-    "Prior Lake", "Forest Lake", "White Bear Lake", "St. Paul - Watergate",
-    "Waconia", "Champlin"
-  ]},
-  { region: "Up north", lakes: [
-    "Big Sandy", "Cross Lake", "Gull Lake", "Leech Lake - Bluewater Lodge",
-    "Leech Lake - Chase", "Mille Lacs - Garrison", "Vermilion"
-  ]},
+const LAKES = [
+  "Big Sandy", "Champlin", "Cross Lake", "Forest Lake", "Gull Lake",
+  "Leech Lake - Bluewater Lodge", "Leech Lake - Chase", "Mille Lacs - Garrison",
+  "Minnetonka - Browns Bay", "Minnetonka - Smiths Bay", "Prior Lake",
+  "St. Croix River", "St. Paul - Watergate", "Vermilion", "Waconia", "White Bear Lake"
 ];
-const LAKE_REGION = {};
-LAKE_GROUPS.forEach(g => g.lakes.forEach(l => LAKE_REGION[l] = g.region));
 
-const BOAT_TYPES = [
-  { name: "Pontoon",  icon: "🛥️", sub: "Cruise in comfort" },
-  { name: "Runabout", icon: "🚤", sub: "Speed & agility" },
-  { name: "Fishing",  icon: "🎣", sub: "Built to fish" },
-];
-const TIME_OPTIONS = [
-  { id: "AM",   label: "AM",        sub: "Morning" },
-  { id: "PM",   label: "PM",        sub: "Afternoon" },
-  { id: "FULL", label: "Full day",  sub: "Dawn to dusk" },
-];
-const RES_LABEL = { FULL: "Full day", AM: "AM", PM: "PM" };
-const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const BOAT_TYPES = ["Pontoon", "Runabout", "Fishing"];
 
-/* ============================== utils ============================== */
-const $ = (id) => document.getElementById(id);
+function initLakes() {
+  const grid = document.getElementById("lakeGrid");
+  grid.innerHTML = LAKES.map((l, i) => `
+    <label class="lake-chip" id="chip-${i}">
+      <input type="checkbox" value="${l}" onchange="onLakeToggle(${i})">
+      ${l}
+    </label>
+  `).join("");
+}
 
-function toast(msg, kind) {
-  const el = $("toast");
+function onLakeToggle(i) {
+  const chip = document.getElementById(`chip-${i}`);
+  const cb = chip.querySelector("input");
+  chip.classList.toggle("selected", cb.checked);
+}
+
+function selectAllLakes(state) {
+  document.querySelectorAll("#lakeGrid input[type=checkbox]").forEach(cb => {
+    cb.checked = state;
+    cb.dispatchEvent(new Event("change"));
+  });
+}
+
+function getSelectedLakes() {
+  return Array.from(document.querySelectorAll("#lakeGrid input[type=checkbox]:checked")).map(cb => cb.value);
+}
+
+function initBoatTypes() {
+  const grid = document.getElementById("boatTypeGrid");
+  grid.innerHTML = BOAT_TYPES.map((t, i) => `
+    <label class="lake-chip" id="boatChip-${i}">
+      <input type="checkbox" value="${t}" onchange="onBoatTypeToggle(${i})">
+      ${t}
+    </label>
+  `).join("");
+}
+
+function onBoatTypeToggle(i) {
+  const chip = document.getElementById(`boatChip-${i}`);
+  const cb = chip.querySelector("input");
+  chip.classList.toggle("selected", cb.checked);
+}
+
+function getSelectedBoatTypes() {
+  return Array.from(document.querySelectorAll("#boatTypeGrid input[type=checkbox]:checked")).map(cb => cb.value);
+}
+
+function clearBoatTypes() {
+  document.querySelectorAll("#boatTypeGrid input[type=checkbox]").forEach(cb => {
+    cb.checked = false;
+    cb.dispatchEvent(new Event("change"));
+  });
+}
+
+const TIME_PREFS = ["AM", "PM"];
+
+function initTimePrefs() {
+  const grid = document.getElementById("timePrefGrid");
+  grid.innerHTML = TIME_PREFS.map((t, i) => `
+    <label class="lake-chip" id="timePrefChip-${i}">
+      <input type="checkbox" value="${t}" onchange="onTimePrefToggle(${i})">
+      ${t}
+    </label>
+  `).join("");
+}
+
+function onTimePrefToggle(i) {
+  const chip = document.getElementById(`timePrefChip-${i}`);
+  const cb = chip.querySelector("input");
+  chip.classList.toggle("selected", cb.checked);
+}
+
+function getSelectedTimePrefs() {
+  return Array.from(document.querySelectorAll("#timePrefGrid input[type=checkbox]:checked")).map(cb => cb.value);
+}
+
+function clearTimePrefs() {
+  document.querySelectorAll("#timePrefGrid input[type=checkbox]").forEach(cb => {
+    cb.checked = false;
+    cb.dispatchEvent(new Event("change"));
+  });
+}
+
+function setStatus(msg, isErr) {
+  const el = document.getElementById("status");
   el.textContent = msg;
-  el.className = "show" + (kind ? " " + kind : "");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => { el.className = ""; }, 3600);
+  el.className = isErr ? "err" : "ok";
+}
+
+function setButtonsDisabled(disabled) {
+  document.querySelectorAll("button").forEach(b => b.disabled = disabled);
 }
 
 async function apiGet(path) {
-  const res = await fetch(path, { headers: { "x-site-secret": SITE_SECRET }, cache: "no-store" });
-  if (!res.ok) throw new Error("Load failed (" + res.status + ")");
+  const res = await fetch(path, { headers: { "x-site-secret": SITE_SECRET } });
+  if (!res.ok) throw new Error(`Load failed: ${res.status}`);
   return res.json();
 }
+
 async function apiPost(path, body) {
   const res = await fetch(path, {
     method: "POST",
     headers: { "x-site-secret": SITE_SECRET, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body)
   });
-  if (!res.ok) throw new Error("Save failed (" + res.status + ")");
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Save failed: ${res.status} ${text}`);
+  }
   return res.json();
 }
 
-function ymd(d) {
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-}
-function prettyDate(ymdStr) {
-  // ymdStr: "YYYY-MM-DD" or "YYYYMMDD"
-  const m = /^(\d{4})-?(\d{2})-?(\d{2})$/.exec(ymdStr || "");
-  if (!m) return ymdStr;
-  const d = new Date(+m[1], +m[2] - 1, +m[3]);
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
-function prettyTime(t) {
-  if (!t) return "";
-  const m = /(\d{1,2}):(\d{2})\s*([AP]M)?/i.exec(t);
-  if (!m) return t;
-  let h = +m[1], ap = (m[3] || "").toUpperCase();
-  if (!ap) { ap = h >= 12 ? "PM" : "AM"; if (h > 12) h -= 12; if (h === 0) h = 12; }
-  return h + ":" + m[2] + " " + ap;
-}
-
-/* ============================== reveal on scroll ============================== */
-const io = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
-}, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
-document.querySelectorAll(".reveal").forEach(el => io.observe(el));
-
-/* ============================== hero waves ============================== */
-(function waves() {
-  const canvas = $("waves");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  let w, h, t = 0, running = true, visible = true;
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-  function size() {
-    w = canvas.clientWidth; h = canvas.clientHeight;
-    canvas.width = w * DPR; canvas.height = h * DPR;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  }
-  size();
-  window.addEventListener("resize", size);
-
-  new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(canvas);
-  document.addEventListener("visibilitychange", () => { running = !document.hidden; });
-
-  const layers = [
-    { amp: 26, len: 0.006, speed: 0.016, y: 0.42, c1: "rgba(38,92,140,0.5)",  c2: "rgba(24,52,86,0.12)" },
-    { amp: 34, len: 0.004, speed: -0.011, y: 0.55, c1: "rgba(98,201,216,0.34)", c2: "rgba(98,201,216,0.05)" },
-    { amp: 22, len: 0.008, speed: 0.022, y: 0.68, c1: "rgba(242,178,62,0.30)", c2: "rgba(242,178,62,0.04)" },
-    { amp: 30, len: 0.005, speed: -0.014, y: 0.82, c1: "rgba(20,44,76,0.85)",  c2: "rgba(10,22,40,0.25)" },
-  ];
-
-  function waveY(x, L, tt) {
-    return h * L.y
-      + Math.sin(x * L.len + tt * L.speed * 60) * L.amp
-      + Math.sin(x * L.len * 2.3 + tt * L.speed * 34 + 1.7) * L.amp * 0.42;
-  }
-
-  function frame() {
-    requestAnimationFrame(frame);
-    if (!running || !visible) return;
-    t += 0.016;
-    ctx.clearRect(0, 0, w, h);
-    for (const L of layers) {
-      ctx.beginPath();
-      ctx.moveTo(0, h);
-      for (let x = 0; x <= w; x += 6) ctx.lineTo(x, waveY(x, L, t));
-      ctx.lineTo(w, h);
-      ctx.closePath();
-      const g = ctx.createLinearGradient(0, h * L.y - L.amp * 2, 0, h);
-      g.addColorStop(0, L.c1); g.addColorStop(1, L.c2);
-      ctx.fillStyle = g;
-      ctx.fill();
-    }
-  }
-  if (reduceMotion) {
-    // paint one static frame
-    t = 3; running = true; visible = true;
-    ctx.clearRect(0, 0, w, h);
-    for (const L of layers) {
-      ctx.beginPath(); ctx.moveTo(0, h);
-      for (let x = 0; x <= w; x += 6) ctx.lineTo(x, waveY(x, L, t));
-      ctx.lineTo(w, h); ctx.closePath();
-      const g = ctx.createLinearGradient(0, h * L.y - L.amp * 2, 0, h);
-      g.addColorStop(0, L.c1); g.addColorStop(1, L.c2);
-      ctx.fillStyle = g; ctx.fill();
-    }
-  } else {
-    frame();
-  }
-})();
-
-/* ============================== animated counters ============================== */
-function countUp(el, to, dur) {
-  dur = dur || 1400;
-  if (reduceMotion || !isFinite(to)) { el.textContent = to; return; }
-  const start = performance.now();
-  function tick(now) {
-    const p = Math.min((now - start) / dur, 1);
-    const e = 1 - Math.pow(1 - p, 4);
-    el.textContent = Math.round(to * e);
-    if (p < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-}
-
-/* ============================== watch builder wizard ============================== */
-const wiz = { step: 1, lakes: new Set(), date: "", boatTypes: new Set(), times: new Set(), phone: "", savedPhone: "" };
-
-function wizRender() {
-  const body = $("wizBody");
-  body.innerHTML = "";
-  const div = document.createElement("div");
-  div.className = "wstep";
-  div.innerHTML = [wizStep1, wizStep2, wizStep3, wizStep4][wiz.step - 1]();
-  body.appendChild(div);
-  // progress
-  document.querySelectorAll("#wizProgress .seg").forEach((s, i) => {
-    s.classList.toggle("done", i < wiz.step);
-  });
-  $("wizCount").textContent = wiz.step <= 4 ? "Step " + wiz.step + " of 4" : "";
-  $("wizBack").hidden = wiz.step === 1 || wiz.step > 4;
-  const next = $("wizNext");
-  next.style.display = wiz.step > 4 ? "none" : "";
-  next.innerHTML = wiz.step === 4 ? "Activate watch →" : "Continue →";
-  const after = { 1: wizAfter1, 2: wizAfter2, 3: wizAfter3, 4: wizAfter4 }[wiz.step];
-  if (after) after();
-}
-
-function wizGo(n) {
-  if (n < 1 || n > 4 || n === wiz.step) return;
-  const body = $("wizBody").firstChild;
-  if (body && !reduceMotion) {
-    body.classList.add("out-left");
-    setTimeout(() => { wiz.step = n; wizRender(); window.scrollTo({ top: $("builder").offsetTop - 80, behavior: "smooth" }); }, 220);
-  } else {
-    wiz.step = n; wizRender();
-  }
-}
-
-function wizNext() {
-  if (wiz.step === 1) {
-    if (!wiz.lakes.size) { toast("Pick at least one lake to watch.", "err"); return; }
-    wizGo(2);
-  } else if (wiz.step === 2) {
-    if (!wiz.date) { toast("Pick a date for your watch.", "err"); return; }
-    wizGo(3);
-  } else if (wiz.step === 3) {
-    wizGo(4);
-  } else if (wiz.step === 4) {
-    wizConfirm();
-  }
-}
-
-/* ---- step 1: lakes ---- */
-function wizStep1() {
-  return `
-    <h3 class="wstep-title">Where do you want <em>to be?</em></h3>
-    <p class="wstep-sub">Pick one lake or a whole handful — we'll watch them all.</p>
-    ${LAKE_GROUPS.map(g => `
-      <div class="lake-group-label">${g.region}</div>
-      <div class="pick-grid">
-        ${g.lakes.map(l => `
-          <div class="pick-card ${wiz.lakes.has(l) ? "selected" : ""}" data-lake="${l}" onclick="wizToggleLake(this)" role="checkbox" aria-checked="${wiz.lakes.has(l)}" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();wizToggleLake(this);}">
-            <span class="check">✓</span><span>${l}</span>
-          </div>`).join("")}
-      </div>`).join("")}
-    <div style="margin-top:22px; display:flex; gap:10px;">
-      <button class="btn btn-ghost btn-sm" onclick="wizAllLakes(true)">Select all</button>
-      <button class="btn btn-ghost btn-sm" onclick="wizAllLakes(false)">Clear</button>
-    </div>`;
-}
-function wizToggleLake(el) {
-  const lake = el.dataset.lake;
-  if (wiz.lakes.has(lake)) { wiz.lakes.delete(lake); el.classList.remove("selected"); }
-  else { wiz.lakes.add(lake); el.classList.add("selected"); }
-  el.setAttribute("aria-checked", wiz.lakes.has(lake));
-}
-function wizAllLakes(on) {
-  document.querySelectorAll(".pick-card[data-lake]").forEach(el => {
-    const lake = el.dataset.lake;
-    if (on) wiz.lakes.add(lake); else wiz.lakes.delete(lake);
-    el.classList.toggle("selected", on);
-    el.setAttribute("aria-checked", on);
-  });
-}
-
-/* ---- step 2: date ---- */
-function upcomingSaturdays() {
-  const out = [];
-  const d = new Date();
-  for (let i = 0; i < 14 && out.length < 2; i++) {
-    const c = new Date(d); c.setDate(d.getDate() + i);
-    if (c.getDay() === 6) out.push(c);
-  }
-  return out;
-}
-function wizStep2() {
-  const today = new Date();
-  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-  const sats = upcomingSaturdays();
-  const chips = [
-    { d: today, label: "Today" },
-    { d: tomorrow, label: "Tomorrow" },
-    ...sats.map((s, i) => ({ d: s, label: i === 0 ? "Saturday" : "Next Sat" })),
-  ];
-  return `
-    <h3 class="wstep-title">When's the <em>day?</em></h3>
-    <p class="wstep-sub">We'll start watching immediately — including for slots that are already open.</p>
-    <div class="date-row">
-      ${chips.map(c => {
-        const v = ymd(c.d);
-        return `<button class="date-chip ${wiz.date === v ? "selected" : ""}" data-date="${v}" onclick="wizPickDate('${v}', this)">
-          ${c.label}<small>${c.d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</small>
-        </button>`;
-      }).join("")}
-    </div>
-    <div class="lake-group-label">Or pick any date</div>
-    <input type="date" class="fancy" id="wizDateInput" value="${wiz.date}" min="${ymd(today)}" onchange="wizCustomDate(this.value)">`;
-}
-function wizPickDate(v, el) {
-  wiz.date = v;
-  document.querySelectorAll(".date-chip").forEach(c => c.classList.toggle("selected", c === el));
-  const inp = $("wizDateInput"); if (inp) inp.value = v;
-}
-function wizCustomDate(v) {
-  if (!v) return;
-  wiz.date = v;
-  document.querySelectorAll(".date-chip").forEach(c => c.classList.toggle("selected", c.dataset.date === v));
-}
-function wizAfter2() {
-  if (!wiz.date) wiz.date = ymd(new Date());
-}
-
-/* ---- step 3: boat + time ---- */
-function wizStep3() {
-  return `
-    <h3 class="wstep-title">What are you <em>after?</em></h3>
-    <p class="wstep-sub">Leave everything unpicked and we'll watch for <b style="color:var(--mist)">anything</b> — any boat, any time.</p>
-    <div class="lake-group-label">Boat type</div>
-    <div class="pick-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">
-      ${BOAT_TYPES.map(b => `
-        <div class="pick-card ${wiz.boatTypes.has(b.name) ? "selected" : ""}" data-boat="${b.name}" onclick="wizToggleBoat(this)" role="checkbox" aria-checked="${wiz.boatTypes.has(b.name)}" tabindex="0" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();wizToggleBoat(this);}">
-          <span class="boat-icon">${b.icon}</span>
-          <span>${b.name}<span class="sub">${b.sub}</span></span>
-        </div>`).join("")}
-    </div>
-    <div class="lake-group-label">Time of day</div>
-    <div class="seg-control" role="group" aria-label="Time of day">
-      ${TIME_OPTIONS.map(t => `
-        <button class="${wiz.times.has(t.id) ? "selected" : ""}" data-time="${t.id}" onclick="wizToggleTime(this)" aria-pressed="${wiz.times.has(t.id)}">${t.label}</button>`).join("")}
-    </div>
-    <p class="fineprint">Tip: "Full day" covers the whole day; AM / PM narrows it to half-day slots.</p>`;
-}
-function wizToggleBoat(el) {
-  const b = el.dataset.boat;
-  if (wiz.boatTypes.has(b)) wiz.boatTypes.delete(b); else wiz.boatTypes.add(b);
-  el.classList.toggle("selected", wiz.boatTypes.has(b));
-  el.setAttribute("aria-checked", wiz.boatTypes.has(b));
-}
-function wizToggleTime(el) {
-  const t = el.dataset.time;
-  if (wiz.times.has(t)) wiz.times.delete(t); else wiz.times.add(t);
-  el.classList.toggle("selected", wiz.times.has(t));
-  el.setAttribute("aria-pressed", wiz.times.has(t));
-}
-function wizAfter1() {}
-function wizAfter3() {}
-
-/* ---- step 4: phone + confirm ---- */
-function wizStep4() {
-  const lakes = [...wiz.lakes];
-  const boats = [...wiz.boatTypes];
-  const times = [...wiz.times].map(t => (RES_LABEL[t] || t));
-  return `
-    <h3 class="wstep-title">Where should we <em>text you?</em></h3>
-    <p class="wstep-sub">One text when your boat opens. Never twice for the same slot.</p>
-    <div class="watch-summary">
-      <div class="row"><span class="k">Lakes</span><span class="v">${lakes.join(", ")}</span></div>
-      <div class="row"><span class="k">Date</span><span class="v">${prettyDate(wiz.date)}</span></div>
-      <div class="row"><span class="k">Boats</span><span class="v">${boats.length ? boats.join(", ") : "Any boat"}</span></div>
-      <div class="row"><span class="k">Time</span><span class="v">${times.length ? times.join(", ") : "Any time"}</span></div>
-    </div>
-    <div class="lake-group-label">Mobile number</div>
-    <div class="phone-row">
-      <input id="wizPhone" inputmode="numeric" maxlength="14" placeholder="(763) 555-0123" value="${wiz.phone}" aria-label="Mobile number">
-    </div>
-    <p class="fineprint">We only ever text about your watches. Standard message rates may apply.</p>`;
-}
-function wizAfter4() {
-  const inp = $("wizPhone");
-  if (inp) inp.addEventListener("input", () => {
-    inp.value = inp.value.replace(/[^\d()\- ]/g, "");
-  });
-}
-async function wizConfirm() {
-  const digits = ($("wizPhone").value || "").replace(/\D/g, "");
-  if (digits.length !== 10) { toast("Enter a 10-digit mobile number.", "err"); return; }
-  const next = $("wizNext");
-  next.disabled = true; next.textContent = "Activating…";
-  try {
-    if (digits !== wiz.savedPhone) {
-      await apiPost("/api/settings", { sms_to: digits + "@tmomail.net" });
-      wiz.savedPhone = digits; wiz.phone = digits;
-    }
-    const watch = {
-      lakes: [...wiz.lakes],
-      date: wiz.date,
-      boat_types: [...wiz.boatTypes],
-      time_prefs: [...wiz.times],
-    };
-    await apiPost("/api/watches", { action: "add", watch });
-    await loadWatches();
-    wiz.step = 5;
-    wizRenderSuccess(watch);
-    toast("Watch active — checking now.", "ok");
-  } catch (e) {
-    toast(e.message, "err");
-  } finally {
-    next.disabled = false;
-  }
-}
-function wizRenderSuccess(watch) {
-  document.querySelectorAll("#wizProgress .seg").forEach(s => s.classList.add("done"));
-  $("wizCount").textContent = "Done";
-  $("wizBack").hidden = true;
-  $("wizNext").style.display = "none";
-  $("wizBody").innerHTML = `
-    <div class="wstep"><div class="success-pane">
-      <div class="success-ring">✓</div>
-      <h3 class="wstep-title">You're <em>watching.</em></h3>
-      <p class="wstep-sub" style="max-width:440px;margin:0 auto 30px;">
-        ${watch.lakes.length} lake${watch.lakes.length > 1 ? "s" : ""} · ${prettyDate(watch.date)} ·
-        ${watch.boat_types.length ? watch.boat_types.join(", ") : "Any boat"}<br>
-        First check runs within 5 minutes — including for slots already open.
-      </p>
-      <button class="btn btn-gold btn-sm" onclick="wizReset()">Watch another date →</button>
-    </div></div>`;
-}
-function wizReset() {
-  wiz.step = 1; wiz.lakes = new Set(); wiz.date = "";
-  wiz.boatTypes = new Set(); wiz.times = new Set();
-  wizRender();
-}
-
-/* ============================== my watches ============================== */
 let currentWatches = [];
 
-function tagFor(t, gold) {
-  return `<span class="tag${gold ? " gold" : ""}">${t}</span>`;
-}
-
 async function loadWatches() {
-  const list = $("watchList");
-  list.innerHTML = `<div class="skeleton"><div class="sk" style="height:22px;width:40%;margin-bottom:14px;"></div><div class="sk" style="height:14px;width:75%;margin-bottom:10px;"></div><div class="sk" style="height:14px;width:55%;"></div></div>`;
+  const listEl = document.getElementById("watchList");
   try {
     const { content } = await apiGet("/api/watches");
-    currentWatches = content || [];
-    if (!currentWatches.length) {
-      list.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1;">
-          <span class="big">🛰️</span>
-          <h3>No watches yet</h3>
-          <p>Set your first watch and we'll start scanning for open boats within minutes.</p>
-          <a href="#builder" class="btn btn-gold btn-sm">Build a watch →</a>
-        </div>`;
+    currentWatches = content;
+    if (!content.length) {
+      listEl.innerHTML = '<div class="empty">No active watches.</div>';
       return;
     }
-    list.innerHTML = currentWatches.map((w, i) => {
+    listEl.innerHTML = content.map((w, i) => {
       const lakes = w.lakes || (w.lake ? [w.lake] : []);
-      const boats = w.boat_types || (w.boat_type ? [w.boat_type] : []);
-      const times = (w.time_prefs || []).map(t => RES_LABEL[t] || t);
       return `
-      <div class="watch-card reveal in">
-        <div class="wc-date">${prettyDate(w.date)}<small>${lakes.length} lake${lakes.length !== 1 ? "s" : ""} · watching</small></div>
-        <div class="wc-lakes">${lakes.join(" · ")}</div>
-        <div class="tagrow">
-          ${boats.map(b => tagFor(b, true)).join("")}
-          ${times.map(t => tagFor(t)).join("")}
-          ${!boats.length && !times.length ? tagFor("Any boat, any time") : ""}
+      <div class="watch-row">
+        <div class="watch-meta">
+          <div class="lakes">${lakes.join(", ")}</div>
+          <div class="detail">${w.date}</div>
+          ${(w.boat_types || (w.boat_type ? [w.boat_type] : [])).map(t => `<span class="pill">${t}</span>`).join("")}
+          ${(w.time_prefs || []).map(t => `<span class="pill">${t}</span>`).join("")}
         </div>
-        <button class="remove" onclick="removeWatch(${i}, this)">Remove watch</button>
-      </div>`;
+        <button class="btn-danger" onclick="removeWatch(${i})">Remove</button>
+      </div>
+    `;
     }).join("");
   } catch (e) {
-    list.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><h3>Couldn't load watches</h3><p>${e.message}</p></div>`;
+    listEl.innerHTML = `<div class="empty">Error loading watches: ${e.message}</div>`;
   }
 }
 
-async function removeWatch(i, btn) {
-  const target = currentWatches[i];
-  if (!target) return;
-  btn.disabled = true; btn.textContent = "Removing…";
+async function addWatch() {
+  const lakes = getSelectedLakes();
+  const date = document.getElementById("dateInput").value;
+  const boat_types = getSelectedBoatTypes();
+  const time_prefs = getSelectedTimePrefs();
+  if (!lakes.length) { setStatus("Pick at least one lake.", true); return; }
+  if (!date) { setStatus("Pick a date.", true); return; }
+
+  setStatus("Saving...", false);
+  setButtonsDisabled(true);
   try {
-    await apiPost("/api/watches", { action: "remove", watch: target });
-    toast("Watch removed.", "ok");
+    await apiPost("/api/watches", { action: "add", watch: { lakes, date, boat_types, time_prefs } });
+    setStatus("Watch added. Next check runs within 5 minutes.", false);
+    document.getElementById("dateInput").value = "";
+    clearBoatTypes();
+    clearTimePrefs();
+    selectAllLakes(false);
     await loadWatches();
   } catch (e) {
-    toast(e.message, "err");
-    btn.disabled = false; btn.textContent = "Remove watch";
-  }
-}
-
-/* ============================== live availability ============================== */
-let availCache = null;
-
-function boatBar(label, count, max) {
-  const pct = max ? Math.round((count / max) * 100) : 0;
-  return `
-    <div class="boat-bar-row">
-      <span class="blabel">${label}</span>
-      <div class="bar-track"><div class="bar-fill" data-w="${pct}"></div></div>
-      <span class="bcount">${count}</span>
-    </div>`;
-}
-
-async function loadAvailability(manual) {
-  const list = $("availList");
-  const btn = $("refreshBtn");
-  const date = $("availDate").value || ymd(new Date());
-  btn.classList.add("loading");
-  if (!manual || !list.children.length) {
-    list.innerHTML = Array.from({ length: 6 }, () =>
-      `<div class="skeleton"><div class="sk" style="height:20px;width:55%;margin-bottom:16px;"></div><div class="sk" style="height:12px;width:90%;margin-bottom:10px;"></div><div class="sk" style="height:12px;width:70%;"></div></div>`
-    ).join("");
-  }
-  try {
-    const data = await apiGet(`/api/availability?date=${date}&t=${Date.now()}`);
-    availCache = data;
-    const locs = data.locations || [];
-    const maxOpen = Math.max(1, ...locs.map(l => (l.slots || []).length));
-    const total = locs.reduce((n, l) => n + (l.slots || []).length, 0);
-
-    list.innerHTML = locs.map((loc, idx) => {
-      if (loc.error) {
-        return `<div class="lake-card">
-          <div class="lake-top"><div><div class="lake-name">${loc.lake}</div></div>
-          <span class="open-badge err"><span class="bdot"></span>Error</span></div>
-          <p style="color:var(--faint);font-size:0.88rem;margin:8px 0 0;">Couldn't reach this lake's feed. Try refreshing.</p>
-        </div>`;
-      }
-      const slots = loc.slots || [];
-      const open = slots.length > 0;
-      const counts = loc.counts || {};
-      const groups = {};
-      slots.forEach(s => {
-        const rt = s.resType || "Other";
-        groups[rt] = groups[rt] || [];
-        groups[rt].push(s);
-      });
-      const order = ["FULL", "AM", "PM"];
-      const chips = [...order.filter(r => groups[r]), ...Object.keys(groups).filter(r => !order.includes(r))]
-        .map(r => `<span class="slot-chip">${RES_LABEL[r] || r} · ${groups[r].length}</span>`).join("");
-      const slotRows = slots.map(s => `
-        <div class="slot-row">
-          <span class="sname">${s.boatName || s.boatType || "Boat"}</span>
-          <span class="stime">${prettyTime(s.startTime)}${s.endTime ? " – " + prettyTime(s.endTime) : ""}</span>
-        </div>`).join("");
-      return `
-      <div class="lake-card ${open ? "has-open" : ""} reveal in" style="transition-delay:${Math.min(idx * 40, 400)}ms">
-        <div class="lake-top">
-          <div><div class="lake-name">${loc.lake}</div><div class="lake-region">${LAKE_REGION[loc.lake] || ""}</div></div>
-          ${open
-            ? `<span class="open-badge yes"><span class="bdot"></span>${slots.length} open</span>`
-            : `<span class="open-badge no"><span class="bdot"></span>Full</span>`}
-        </div>
-        ${open ? `
-        <div class="boat-bars">
-          ${boatBar("Pontoon", counts["Pontoon"] || 0, maxOpen)}
-          ${boatBar("Runabout", counts["Runabout"] || 0, maxOpen)}
-          ${boatBar("Fishing", counts["Fishing"] || 0, maxOpen)}
-        </div>
-        <div class="slot-chips">${chips}</div>
-        <div class="slot-list" id="slots-${idx}" hidden>${slotRows}</div>
-        ` : `<p style="color:var(--faint);font-size:0.9rem;margin:14px 0 0;">Nothing open this day — <a href="#builder" style="color:var(--gold);">set a watch</a> and we'll text you the moment that changes.</p>`}
-        <div class="lake-foot">
-          ${open ? `<button class="toggle-slots" onclick="toggleSlots(${idx}, this)">Show boats ▾</button>` : `<span></span>`}
-          <a class="book-link" href="${data.bookingUrl}" target="_blank" rel="noopener">Book →</a>
-        </div>
-      </div>`;
-    }).join("");
-
-    // animate bars after paint
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      document.querySelectorAll(".bar-fill[data-w]").forEach(el => { el.style.width = el.dataset.w + "%"; });
-    }));
-
-    const upd = $("availUpdated");
-    const now = new Date();
-    upd.innerHTML = `Showing <b>${prettyDate(data.date)}</b> · updated ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · <b style="color:var(--open)">${total} open</b> across all lakes`;
-
-    // hero live count for today
-    if (date === ymd(new Date())) countUp($("heroOpenCount"), total);
-  } catch (e) {
-    list.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><h3>Couldn't load availability</h3><p>${e.message}</p></div>`;
+    setStatus(e.message, true);
   } finally {
-    btn.classList.remove("loading");
+    setButtonsDisabled(false);
   }
 }
 
-function toggleSlots(idx, btn) {
-  const el = $("slots-" + idx);
-  const open = el.hidden;
-  el.hidden = !open;
-  btn.innerHTML = open ? "Hide boats ▴" : "Show boats ▾";
+async function removeWatch(index) {
+  const target = currentWatches[index];
+  if (!target) return;
+  setStatus("Removing...", false);
+  setButtonsDisabled(true);
+  try {
+    await apiPost("/api/watches", { action: "remove", watch: target });
+    setStatus("Watch removed.", false);
+    await loadWatches();
+  } catch (e) {
+    setStatus(e.message, true);
+  } finally {
+    setButtonsDisabled(false);
+  }
 }
 
-/* ============================== phone settings ============================== */
 async function loadPhone() {
   try {
-    const s = await apiGet("/api/settings");
-    const digits = (s.sms_to || "").split("@")[0].replace(/\D/g, "");
-    if (digits) { wiz.savedPhone = digits; wiz.phone = digits; }
-  } catch (e) { /* non-fatal */ }
+    const settings = await apiGet("/api/settings");
+    const number = (settings.sms_to || "").split("@")[0];
+    if (number) {
+      document.getElementById("phoneInput").placeholder = number;
+      document.getElementById("phoneStatus").textContent = `Currently: ${number}`;
+    }
+  } catch (e) {
+    // non-fatal
+  }
 }
 
-/* ============================== init ============================== */
-(function init() {
-  const d = new Date();
-  $("availDate").value = ymd(d);
-  $("availDate").min = ymd(d);
-  $("availDate").addEventListener("change", () => loadAvailability(false));
-  wizRender();
-  loadWatches();
-  loadPhone();
-  loadAvailability(false); // also feeds the hero counter
-})();
+async function savePhone() {
+  const digits = document.getElementById("phoneInput").value.replace(/\D/g, "");
+  if (digits.length !== 10) {
+    document.getElementById("phoneStatus").textContent = "Enter a 10-digit number.";
+    return;
+  }
+  setButtonsDisabled(true);
+  document.getElementById("phoneStatus").textContent = "Saving...";
+  try {
+    await apiPost("/api/settings", { sms_to: `${digits}@tmomail.net` });
+    document.getElementById("phoneStatus").textContent = `Saved. Texts now go to ${digits}.`;
+    document.getElementById("phoneInput").value = "";
+    document.getElementById("phoneInput").placeholder = digits;
+  } catch (e) {
+    document.getElementById("phoneStatus").textContent = e.message;
+  } finally {
+    setButtonsDisabled(false);
+  }
+}
+
+let availabilityLoaded = false;
+
+function switchTab(tab) {
+  document.getElementById("tabWatches").style.display = tab === "watches" ? "" : "none";
+  document.getElementById("tabAvailability").style.display = tab === "availability" ? "" : "none";
+  document.getElementById("tabBtnWatches").classList.toggle("active", tab === "watches");
+  document.getElementById("tabBtnAvailability").classList.toggle("active", tab === "availability");
+  if (tab === "availability") {
+    const dateInput = document.getElementById("availDateInput");
+    if (!dateInput.value) {
+      const d = new Date();
+      dateInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+    if (!availabilityLoaded) loadAvailability();
+  }
+}
+
+function formatDateLabel(dateStr) {
+  if (!dateStr || dateStr.length !== 8) return dateStr;
+  return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+}
+
+const RES_TYPE_LABEL = { FULL: "Full day", AM: "AM", PM: "PM" };
+const RES_TYPE_ORDER = ["AM", "PM", "FULL"];
+const BOAT_TYPE_ORDER = ["Pontoon", "Runabout", "Fishing"];
+
+function groupSlotsByResType(slots) {
+  const groups = {};
+  for (const s of slots) {
+    const rt = s.resType || "Other";
+    groups[rt] = groups[rt] || {};
+    groups[rt][s.boatType] = (groups[rt][s.boatType] || 0) + 1;
+  }
+  return groups;
+}
+
+function resTypeGroupLine(counts) {
+  return BOAT_TYPE_ORDER
+    .filter((t) => counts[t])
+    .map((t) => `${counts[t]} ${t}`)
+    .concat(
+      Object.keys(counts)
+        .filter((t) => !BOAT_TYPE_ORDER.includes(t))
+        .map((t) => `${counts[t]} ${t}`)
+    )
+    .join(", ");
+}
+
+async function loadAvailability() {
+  const listEl = document.getElementById("availList");
+  const dateEl = document.getElementById("availDate");
+  const chosenDate = document.getElementById("availDateInput").value;
+  listEl.innerHTML = '<div class="empty">Loading...</div>';
+  try {
+    const res = await fetch(`/api/availability?date=${chosenDate}&t=${Date.now()}`, {
+      headers: { "x-site-secret": SITE_SECRET },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Load failed: ${res.status}`);
+    const data = await res.json();
+    availabilityLoaded = true;
+    dateEl.textContent = `Showing ${formatDateLabel(data.date)}`;
+
+    listEl.innerHTML = data.locations.map((loc) => {
+      if (loc.error) {
+        return `
+        <div class="watch-row">
+          <div class="watch-meta">
+            <div class="lakes">${loc.lake}</div>
+            <div class="detail">Error: ${loc.error}</div>
+          </div>
+        </div>`;
+      }
+      const pontoon = loc.counts["Pontoon"] || 0;
+      const runabout = loc.counts["Runabout"] || 0;
+      const fishing = loc.counts["Fishing"] || 0;
+      const total = loc.slots.length;
+      const resGroups = groupSlotsByResType(loc.slots);
+      const resLines = RES_TYPE_ORDER
+        .concat(Object.keys(resGroups).filter((rt) => !RES_TYPE_ORDER.includes(rt)))
+        .filter((rt) => resGroups[rt])
+        .map((rt) => `<div class="detail">${RES_TYPE_LABEL[rt] || rt}: ${resTypeGroupLine(resGroups[rt])}</div>`)
+        .join("");
+      return `
+      <div class="watch-row">
+        <div class="watch-meta">
+          <div class="lakes">${loc.lake}</div>
+          <div class="detail">${total ? `${total} open` : "Nothing open"}</div>
+          <div class="avail-counts">
+            <span class="pill">Pontoon: ${pontoon}</span>
+            <span class="pill">Runabout: ${runabout}</span>
+            ${fishing ? `<span class="pill">Fishing: ${fishing}</span>` : ""}
+          </div>
+          ${total ? `
+          <details>
+            <summary>AM / PM breakdown</summary>
+            ${resLines}
+          </details>` : ""}
+        </div>
+        <a class="btn-ghost" href="${data.bookingUrl}" target="_blank" rel="noopener">Book</a>
+      </div>`;
+    }).join("");
+  } catch (e) {
+    listEl.innerHTML = `<div class="empty">Error loading availability: ${e.message}</div>`;
+  }
+}
+
+initLakes();
+initBoatTypes();
+initTimePrefs();
+loadWatches();
+loadPhone();
 </script>
 </body>
 </html>
